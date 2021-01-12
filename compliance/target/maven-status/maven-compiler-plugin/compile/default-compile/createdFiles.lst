@@ -1,7 +1,0 @@
-com/connectpay/compliance/service/ComplianceSerivce.class
-com/connectpay/compliance/service/helper/ComplianceServiceHelper.class
-com/connectpay/compliance/ServletInitializer.class
-com/connectpay/compliance/controller/ComplianceController.class
-com/connectpay/compliance/CpComplianceApplication.class
-com/connectpay/compliance/constants/Endpoints.class
-com/connectpay/compliance/service/impl/ComplianceSerivceImpl.class

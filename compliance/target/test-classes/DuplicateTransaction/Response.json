@@ -1,1 +1,0 @@
-{"response":[{"detail":"The transaction ID: 1563949abcd783488539879934999788900990879300499053 already exists.","source":{"pointer":"/data"},"status":"400"}],"errorCode":"400","errorMessage":null,"status":"FAILED"}
