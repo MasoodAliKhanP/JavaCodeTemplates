@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+    <Properties>
+        <Property name="filename">./logs/integrationservice.log</Property>
+        <Property name="datePattern">yyyy-MM-dd</Property>
+    </Properties>
+
+    <Appenders>
+        <Console name="consoleAppender" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d{yyyy/MM/dd HH:mm:ss:SSS}|%-5p|%t|%C{1}.%M(%L)|%m%n"/>
+        </Console>
+
+        <RollingFile name="fileAppender" append="true" fileName="${filename}"
+                     filePattern="${filename}.%d{${datePattern}}">
+            <PatternLayout pattern="%d{yyyy/MM/dd HH:mm:ss:SSS}|%-5p|%t|%C{1}.%M(%L)|%m%n"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy/>
+            </Policies>
+        </RollingFile>
+    </Appenders>
+
+    <Loggers>
+        <Logger name="biz.digitalhouse.integration" level="DEBUG"/>
+
+        <Logger name="org.springframework.ws.server.endpoint.interceptor.PayloadLoggingInterceptor" level="DEBUG"/>
+
+        <Logger name="org.springframework.boot" level="INFO"/>
+
+        <Root level="INFO">
+            <AppenderRef ref="fileAppender"/>
+            <AppenderRef ref="consoleAppender"/>
+        </Root>
+    </Loggers>
+
+</Configuration>

@@ -1,0 +1,646 @@
+package biz.digitalhouse.integration.v3.services.transactions;
+
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import biz.digitalhouse.integration.v3.GeneralSettingKey;
+import biz.digitalhouse.integration.v3.InternalServiceResponseStatus;
+import biz.digitalhouse.integration.v3.Vendors;
+import biz.digitalhouse.integration.v3.dao.BrandDAO;
+import biz.digitalhouse.integration.v3.dao.GameDAO;
+import biz.digitalhouse.integration.v3.dao.GeneralSettingDAO;
+import biz.digitalhouse.integration.v3.dao.PlayTransactionDAO;
+import biz.digitalhouse.integration.v3.dao.TransactionDAO;
+import biz.digitalhouse.integration.v3.exceptions.ExternalServiceException;
+import biz.digitalhouse.integration.v3.model.Balance;
+import biz.digitalhouse.integration.v3.model.Game;
+import biz.digitalhouse.integration.v3.model.Player;
+import biz.digitalhouse.integration.v3.model.Transaction;
+import biz.digitalhouse.integration.v3.model.Transaction.TransactionStatus;
+import biz.digitalhouse.integration.v3.model.Transaction.TransactionType;
+import biz.digitalhouse.integration.v3.services.balances.BalanceManager;
+import biz.digitalhouse.integration.v3.services.externalClient.ExternalClient;
+import biz.digitalhouse.integration.v3.services.externalClient.dto.ScratchCardWinResult;
+import biz.digitalhouse.integration.v3.services.externalClient.dto.TransactionResult;
+import biz.digitalhouse.integration.v3.utils.CommonUtils;
+import biz.digitalhouse.integration.v3.utils.ConfUtils;
+import biz.digitalhouse.integration.v3.utils.StringUtils;
+
+/**
+ * @author Vitalii Babenko
+ *         on 15.04.2016.
+ */
+@Service
+public class PlayTransactionManagerImpl implements PlayTransactionManager, PlayTransactionJobManager {
+
+    private final Log log = LogFactory.getLog(getClass());
+
+    @Autowired
+    private TransactionDAO transactionDAO;
+    @Autowired
+    private ExternalClient externalClient;
+    @Autowired
+    private GeneralSettingDAO generalSettingDAO;
+    @Autowired
+    private PlayTransactionDAO playTransactionDAO;
+    @Autowired
+    private GameDAO gameDAO;
+    @Autowired
+    private BalanceManager balanceManager;
+    @Autowired
+    private BrandDAO brandDAO;
+
+
+    @Override
+    public long createPlaySession(String vendorID, long brandID, Player player, int vipLevel, String gameSymbol, String incomingRoundID, Long incomingOriginalRoundID, String bonusCode) {
+
+        Game game = gameDAO.getGameBySymbol(gameSymbol);
+        if (game == null) {
+            throw new RuntimeException("Game[" + gameSymbol + "] not found.");
+        }
+
+        long roundID = playTransactionDAO.createPlaySession(gameSymbol, player.getPlayerID(), vipLevel, incomingOriginalRoundID, bonusCode, incomingRoundID);
+
+        Transaction tr = transactionDAO.generateTransaction(
+                vendorID, null, String.valueOf(roundID), incomingOriginalRoundID != null ? incomingOriginalRoundID.toString() : null,
+                brandID, 0.0, roundID, incomingOriginalRoundID, game.getGameID(), gameSymbol, null, bonusCode, TransactionType.BEFORE_BET,
+                player.getPlayerID(), player.getExternalPlayerID());
+        transactionDAO.updateTransaction(tr);
+
+        return roundID;
+    }
+
+    @Override
+    public TransactionResult bet(long brandID, String vendorID, Player player, String gameSymbol,
+                                 double amount, String incomingTransactionID, String incomingRoundID, String incomingOriginalRoundID,
+                                 boolean gamble, String bonusCode) {
+
+
+        Transaction tr;
+        //todo проверяем есть ли такая транзакция
+        if ((tr = findTransactionByIncomingTransactionID(brandID, vendorID, incomingTransactionID, incomingRoundID, TransactionType.BET)) != null) {
+            if (tr.getTransactionStatus().equals(TransactionStatus.COMPLETED)) {
+                //todo если транзакция есть и статус обработано то возвращаем результат
+                return new TransactionResult(vendorID, tr.getCash(), tr.getBonus(), tr.getUsedBonus(), tr.getTransactionID());
+            } else if (tr.getTransactionStatus().equals(TransactionStatus.PROCESSING)) {
+                //todo если транзакция есть но еще обрабатывается возвращаем неизвестную ошибку
+                if (log.isInfoEnabled()) {
+                    log.info("Transaction in processing. Return UNKNOWN(-1000) status.");
+                }
+                return new TransactionResult(InternalServiceResponseStatus.ERROR);
+            } else {
+                //todo если транзакция есть с любым другим статусом то возвращаем ошибку
+                log.debug("Transaction not in COMPLETED status: " + tr);
+                return new TransactionResult(InternalServiceResponseStatus.ERROR);
+            }
+        }
+
+        Game game = gameDAO.getGameBySymbol(gameSymbol);
+        if (game == null) {
+            if (log.isWarnEnabled()) {
+                log.warn("Game not found by gameID " + gameSymbol + "Pleas check!");
+            }
+            return new TransactionResult(InternalServiceResponseStatus.GAME_DISABLED_FOR_BONUS);
+        }
+
+        //todo определяем ИД раунда родителя. !Если это наш вендор то пришедший родительский раунд и есть он!!!
+        Long originalRoundID = null;
+        if (Vendors.TOP_GAME.equals(vendorID)) {
+            if (incomingOriginalRoundID != null) {
+                originalRoundID = Long.valueOf(incomingOriginalRoundID);
+            }
+            //TODO Так же для нашего вендора ищем созданую ранее playSession. В случае если это gamble ищем WIN
+            tr = transactionDAO.findTransactionByIncomingRoundID(vendorID, incomingRoundID, gamble ? TransactionType.WIN : TransactionType.BEFORE_BET);
+        } else {
+            originalRoundID = playTransactionDAO.getPossibleParentPlaySession(player.getPlayerID(), game.getGameID(), incomingOriginalRoundID);
+        }
+        //todo Создаем новую плей сессию в основной БД
+        long roundID = tr != null ? tr.getRoundID() : playTransactionDAO.createPlaySession(game.getSymbol(), player.getPlayerID(), 0, originalRoundID, bonusCode, Vendors.TOP_GAME.equals(vendorID) ? null : incomingRoundID);
+
+        if (tr == null || gamble) {
+            //todo Создаем транзакцию в монго БД
+            tr = transactionDAO.generateTransaction(vendorID, incomingTransactionID, incomingRoundID, incomingOriginalRoundID, brandID, amount, roundID, originalRoundID, game.getGameID(), game.getSymbol(), gamble, bonusCode, TransactionType.BET, player.getPlayerID(), player.getExternalPlayerID());
+        } else {
+            tr.setIncomingTransactionID(incomingTransactionID);
+            tr.setAmount(amount);
+            tr.setOriginalRoundID(originalRoundID);
+            tr.setGambling(false);
+            tr.setTransactionType(TransactionType.BET);
+            transactionDAO.updateTransaction(tr);
+        }
+
+        try {
+            //todo Делаем запрос на удаленный сервис
+            TransactionResult result = externalClient.bet(brandID, vendorID, player.getExternalPlayerID(),
+                    game.getSymbol(), roundID, originalRoundID, amount, tr.getTransactionID(), CommonUtils.getRoundDetailsString(gamble, false),
+                    bonusCode);
+
+            if (result.getStatus() == 0) {
+                //todo если все хорошо, делаем бет в основной БД
+                if (gamble) {
+                    playTransactionDAO.gamblingBegin(tr.getTransactionID(), player.getPlayerID(), roundID, amount,
+                            result.getUsedBonus(), result.getCash(), result.getBonus(), game.getSymbol(), result.getTransactionId());
+                } else {
+                    playTransactionDAO.transactionBet(tr.getTransactionID(), player.getPlayerID(), roundID, amount,
+                            result.getUsedBonus(), result.getCash(), result.getBonus(), game.getSymbol(), result.getTransactionId());
+                }
+                tr.setExternalTransactionID(result.getTransactionId());
+            }
+
+            //todo отмечаем нормальные результаты в мого БД и обновляем баланс
+            if (result.getStatus() == InternalServiceResponseStatus.OK
+                    || result.getStatus() == InternalServiceResponseStatus.INSUFFICIENT_FUNDS_ERROR
+                    || result.getStatus() == InternalServiceResponseStatus.GAME_DISABLED_FOR_BONUS) {
+
+                tr.setUsedBonus(result.getUsedBonus());
+                tr.setTransactionStatus(TransactionStatus.COMPLETED);
+                balanceManager.putBalance(new Balance(player.getPlayerID(), vendorID, result.getCash(), result.getBonus()));
+                result.setTransactionId(tr.getTransactionID());
+            }
+            tr.setBetResultStatusDescription(result.getStatus());
+            //todo обновляем запись м монго БД
+            transactionDAO.updateTransaction(tr);
+            return result;
+        } catch (ExternalServiceException e) {
+            tr.setTransactionStatus(TransactionStatus.ERROR);
+            transactionDAO.updateTransaction(tr);
+
+            if (log.isDebugEnabled()) {
+                log.debug("Init refund");
+            }
+            refund(brandID, vendorID, player, incomingTransactionID);
+            throw e;
+        } finally {
+            //todo если в процессе статус не поменялся, изменяем статус на ошибку и обновляем в монго
+            if (tr != null && tr.getTransactionStatus().equals(TransactionStatus.PROCESSING)) {
+                tr.setTransactionStatus(TransactionStatus.ERROR);
+                transactionDAO.updateTransaction(tr);
+            }
+        }
+    }
+
+    @Override
+    public String refund(long brandID, String vendorID, Player player, String incomingTransactionID) {
+
+        Transaction tr;
+        if ((tr = findTransactionByIncomingTransactionID(brandID, vendorID, incomingTransactionID, null, TransactionType.REFUND)) != null) {
+            if (tr.getTransactionStatus().equals(TransactionStatus.COMPLETED)) {
+                return tr.getExternalTransactionID() != null ? tr.getTransactionID() : null;
+            }
+            if (log.isWarnEnabled()) {
+                log.warn(String.format("Transaction refund vendorTransactionID[%s] mongoTransactionID[%s] by vendor[%s] in processing. Player[%d], Brand[%d].",
+                        incomingTransactionID, tr.getTransactionID(), vendorID, player.getPlayerID(), brandID));
+            }
+            throw new ExternalServiceException();
+        }
+
+        if ((tr = findTransactionByIncomingTransactionID(brandID, vendorID, incomingTransactionID, null, TransactionType.BET)) != null) {
+            if (tr.getTransactionStatus().equals(TransactionStatus.PROCESSING)) {
+                if (log.isWarnEnabled()) {
+                    log.warn(String.format("Transaction bet vendorTransactionID[%s] mongoTransactionID[%s] by vendor[%s] in processing. Player[%d], Brand[%d].",
+                            incomingTransactionID, tr.getTransactionID(), vendorID, player.getPlayerID(), brandID));
+                }
+                throw new ExternalServiceException();
+            }
+        }
+
+        if (tr == null && (tr = findTransactionByIncomingTransactionID(brandID, vendorID, incomingTransactionID, null, TransactionType.BEFORE_BET)) != null) {
+            if (tr.getTransactionStatus().equals(TransactionStatus.PROCESSING)) {
+                if (log.isWarnEnabled()) {
+                    log.warn(String.format("Transaction bet vendorTransactionID[%s] mongoTransactionID[%s] by vendor[%s] in processing. Player[%d], Brand[%d].",
+                            incomingTransactionID, tr.getTransactionID(), vendorID, player.getPlayerID(), brandID));
+                }
+                throw new ExternalServiceException();
+            }
+        }
+
+        if (tr == null) {
+            return "";
+        }
+
+        final String refundTransactionID = tr.getTransactionID();
+        tr = transactionDAO.generateTransaction(vendorID, incomingTransactionID, tr.getIncomingRoundID(), tr.getIncomingOriginalRoundID(), brandID,
+                tr.getAmount(), tr.getRoundID(), tr.getOriginalRoundID(), tr.getGameID(), tr.getGameSymbol(), tr.getGambling(), tr.getBonusCode(), TransactionType.REFUND, player.getPlayerID(), player.getExternalPlayerID());
+        try {
+            String extTransactionID = externalClient.refund(brandID, vendorID, player.getExternalPlayerID(), refundTransactionID);
+            tr.setExternalTransactionID(extTransactionID);
+            tr.setTransactionStatus(TransactionStatus.COMPLETED);
+            return tr.getTransactionID();
+        } finally {
+            if (tr != null && tr.getTransactionStatus().equals(TransactionStatus.PROCESSING)) {
+                tr.setTransactionStatus(TransactionStatus.ERROR);
+            }
+            if(log.isDebugEnabled()) {
+                log.debug(tr);
+            }
+            transactionDAO.updateTransaction(tr);
+        }
+    }
+
+    @Override
+    public TransactionResult win(long brandID, String vendorID, Player player, String gameSymbol, double amount, String incomingTransactionID,
+                                 String incomingRoundID, String incomingOriginalRoundID, boolean gamble, String bonusCode, Boolean endRound) {
+        // By End Round
+        if(incomingTransactionID == null || incomingTransactionID.trim().isEmpty()) {
+            incomingTransactionID = "0";
+        }
+        // By end round and old protocol
+        String protocol = generalSettingDAO.getValue(GeneralSettingKey.PROTOCOL.key(), brandID);
+        if ("HTTP-O".equalsIgnoreCase(protocol) && amount  == 0D && incomingTransactionID.equals("0")) {
+            Balance b = balanceManager.getBalance(brandID, player.getPlayerID(), vendorID);
+            return new TransactionResult(vendorID, b.getCash(), b.getBonus(), 0D, null);
+        }
+
+        Game game = null;
+        if (StringUtils.isBlank(gameSymbol) && StringUtils.isNotEmpty(bonusCode)) {
+            if (log.isDebugEnabled()) {
+                log.debug("searching gameID by FRB_ID. bonusCode[" + bonusCode + "], vendorID[" + vendorID + "].");
+            }
+
+            Long gameID = gameDAO.getGameIdByFreeRoundId(bonusCode, vendorID);
+            game = gameDAO.getGame(gameID);
+        }
+        if (StringUtils.isNotEmpty(gameSymbol) && game == null) {
+            game = gameDAO.getGameBySymbol(gameSymbol);
+        }
+
+        if (game == null) {
+            if (log.isWarnEnabled()) {
+                log.warn("Game not found by gameSymbol[" + gameSymbol + "]. Pleas check!");
+            }
+            return new TransactionResult(InternalServiceResponseStatus.GAME_DISABLED_FOR_BONUS);
+        }
+
+        Transaction tr;
+
+        if ((tr = findTransactionByIncomingTransactionID(brandID, vendorID, incomingTransactionID, incomingRoundID, TransactionType.WIN)) != null) {
+            if(TransactionStatus.COMPLETED.equals(tr.getTransactionStatus())) {
+                return new TransactionResult(vendorID, tr.getCash(), tr.getBonus(), tr.getUsedBonus(), tr.getTransactionID());
+            } else {
+                return new TransactionResult(InternalServiceResponseStatus.ERROR);
+            }
+        }
+
+        tr = transactionDAO.findTransactionByIncomingRoundID(vendorID, incomingRoundID, TransactionType.BET);
+
+
+        Long originalRoundID = null;
+        if (Vendors.TOP_GAME.equals(vendorID)) {
+            if(tr == null && log.isWarnEnabled()) {
+                log.warn("!!! WIN WITHOUT BET !!! brandID: " + brandID +
+                        ", vendorID: " + vendorID +
+                        ", player: " + player +
+                        ", gameSymbol: " + gameSymbol +
+                        ", amount: " + amount +
+                        ", incomingTransactionID: " + incomingTransactionID +
+                        ", incomingRoundID: " + incomingRoundID +
+                        ", incomingOriginalRoundID: " + incomingOriginalRoundID +
+                        ", gamble: " + gamble +
+                        ", bonusCode: " + bonusCode +
+                        ", endRound: " + endRound );
+            }
+            if (incomingOriginalRoundID != null) {
+                originalRoundID = Long.valueOf(incomingOriginalRoundID);
+            }
+        } else {
+            originalRoundID = playTransactionDAO.getPossibleParentPlaySession(player.getPlayerID(), game.getGameID(), incomingOriginalRoundID);
+        }
+
+        Long roundID = null;
+        if (tr == null && Vendors.TOP_GAME.equals(vendorID)) {
+            roundID = playTransactionDAO.findPlaySessionID(incomingRoundID, player.getPlayerID());
+            log.info("WIN transaction was not found in mongoDB. Trying to check it in Oracle. incomingRoundID:" + incomingRoundID + ", playerID: " + player.getPlayerID() + "; result: " + roundID);
+        }
+
+        if (roundID == null) {
+            roundID = tr != null ? tr.getRoundID() : playTransactionDAO.createPlaySession(game.getSymbol(), player.getPlayerID(),
+                    0, originalRoundID, bonusCode, Vendors.TOP_GAME.equals(vendorID) ? null : incomingRoundID);
+        }
+
+        tr = transactionDAO.generateTransaction(vendorID, incomingTransactionID, incomingRoundID, incomingOriginalRoundID,
+                brandID, amount, roundID, originalRoundID, game.getGameID(), game.getSymbol(), gamble, bonusCode, TransactionType.WIN,
+                player.getPlayerID(), player.getExternalPlayerID());
+        tr.setEndRound(endRound);
+
+        try {
+            long internalTransactionID = tr.getGambling() ?
+                    playTransactionDAO.gamblingEnd(tr.getTransactionID(), player.getPlayerID(), roundID, amount, game.getSymbol()) :
+                    playTransactionDAO.transactionWin(tr.getTransactionID(), player.getPlayerID(), roundID, amount, game.getSymbol());
+
+            tr.setInternalTransactionID(internalTransactionID);
+            transactionDAO.updateTransaction(tr);
+        } catch (Exception e) {
+            if (tr.getTransactionStatus().equals(TransactionStatus.PROCESSING)) {
+                tr.setTransactionStatus(TransactionStatus.INTERNAL_ERROR);
+                transactionDAO.updateTransaction(tr);
+            }
+            throw e;
+        }
+
+        processWinOnExternalSide(tr, false);
+        return new TransactionResult(tr.getVendorID(), tr.getCash(), tr.getBonus(), tr.getUsedBonus(), tr.getTransactionID());
+    }
+
+    @Override
+    public TransactionResult jackpotWin(long brandID, String vendorID, Player player, String gameSymbol, double amount, long jackpotID,
+                                        String tierTypeID, String incomingTransactionID, String incomingRoundID, String incomingOriginalRoundID, boolean endRound) {
+
+    	// By End Round
+        if(incomingTransactionID == null || incomingTransactionID.trim().isEmpty()) {
+            incomingTransactionID = "0";
+        }
+        
+        Game game = null;
+        
+        if (StringUtils.isNotEmpty(gameSymbol) && game == null) {
+            game = gameDAO.getGameBySymbol(gameSymbol);
+        }
+        if (game == null) {
+            if (log.isWarnEnabled()) {
+                log.warn("Game not found by gameID " + gameSymbol + "Pleas check!");
+            }
+            return new TransactionResult(InternalServiceResponseStatus.GAME_DISABLED_FOR_BONUS);
+        }
+    
+        Transaction tr;
+
+        if ((tr = findTransactionByIncomingTransactionID(brandID, vendorID, incomingTransactionID, incomingRoundID, TransactionType.JACKPOT_WIN)) != null) {
+        	if(TransactionStatus.COMPLETED.equals(tr.getTransactionStatus())) {
+                return new TransactionResult(vendorID, tr.getCash(), tr.getBonus(), tr.getUsedBonus(), tr.getTransactionID());
+            } else {
+                return new TransactionResult(InternalServiceResponseStatus.ERROR);
+            }
+        }
+
+        tr = transactionDAO.findTransactionByIncomingRoundID(vendorID, incomingRoundID, TransactionType.BET);
+
+        Long originalRoundID = null;
+        if (Vendors.TOP_GAME.equals(vendorID)) {
+            if (incomingOriginalRoundID != null) {
+                originalRoundID = Long.valueOf(incomingOriginalRoundID);
+            }
+        } else {
+            originalRoundID = playTransactionDAO.getPossibleParentPlaySession(player.getPlayerID(), game.getGameID(), incomingOriginalRoundID);
+        }
+
+        Long roundID = null;
+        if (tr == null && Vendors.TOP_GAME.equals(vendorID)) {
+            roundID = playTransactionDAO.findPlaySessionID(incomingRoundID, player.getPlayerID());
+            log.info("JACKPOT WIN transaction was not found in mongoDB. Trying to check it in Oracle. incomingRoundID:" + incomingRoundID + ", playerID: " + player.getPlayerID() + "; result: " + roundID);
+        }
+
+        if (roundID == null) {
+            roundID = tr != null ? tr.getRoundID() : playTransactionDAO.createPlaySession(game.getSymbol(), player.getPlayerID(),
+                    0, originalRoundID, null, Vendors.TOP_GAME.equals(vendorID) ? null : incomingRoundID);
+        }
+        
+//        long roundID = tr != null ? tr.getRoundID() : playTransactionDAO.createPlaySession(game.getSymbol(), player.getPlayerID(),
+//                0, originalRoundID, null, Vendors.TOP_GAME.equals(vendorID) ? null : incomingRoundID);
+
+        tr = transactionDAO.generateTransaction(vendorID, incomingTransactionID, incomingRoundID, incomingOriginalRoundID,
+                brandID, amount, roundID, originalRoundID, game.getGameID(), game.getSymbol(), false, null, TransactionType.JACKPOT_WIN,
+                player.getPlayerID(), player.getExternalPlayerID());
+        tr.setJackpotID(jackpotID);
+        tr.setTierTypeID(tierTypeID);
+        tr.setEndRound(endRound);
+        
+        try {
+            long internalTransactionID = playTransactionDAO.transactionJackpot(tr.getTransactionID(), player.getPlayerID(), roundID, amount, jackpotID, tierTypeID, game.getSymbol());
+            tr.setInternalTransactionID(internalTransactionID);
+            transactionDAO.updateTransaction(tr);
+        } catch (Exception e) {
+            if (tr.getTransactionStatus().equals(TransactionStatus.PROCESSING)) {
+                tr.setTransactionStatus(TransactionStatus.INTERNAL_ERROR);
+                transactionDAO.updateTransaction(tr);
+            }
+            throw e;
+        }
+
+        processJackpotOnExternalSide(tr);
+
+        return new TransactionResult(tr.getVendorID(), tr.getCash(), tr.getBonus(), tr.getUsedBonus(), tr.getTransactionID());
+    }
+
+    @Override
+    public void jackpotWin() {
+        List<Long> brandIDs = brandDAO.getAllExternalBrandIDs();
+        for(Long brandID : brandIDs) {
+
+            Calendar cal = Calendar.getInstance();
+            int MAX_PROCESS_HOURS = ConfUtils.getIntValue(brandID, 24 * 30, GeneralSettingKey.ASYNCHRONOUS_REQUEST_RETRY_MAX_PROCESS_HOURS, generalSettingDAO);
+            cal.add(Calendar.HOUR_OF_DAY, -MAX_PROCESS_HOURS);
+            Date createDate = cal.getTime();
+
+            cal = Calendar.getInstance();
+            int RETRY_DELAY_BETWEEN = ConfUtils.getIntValue(brandID, 1, GeneralSettingKey.ASYNCHRONOUS_REQUEST_RETRY_DELAY_BETWEEN_ATTEMPTS_IN_MINUTES, generalSettingDAO);
+            cal.add(Calendar.MINUTE, -RETRY_DELAY_BETWEEN);
+            Date lastProcessing = cal.getTime();
+            List<Transaction> wins = transactionDAO.findTransactionsForRetry(brandID, createDate, lastProcessing, TransactionType.JACKPOT_WIN);
+            for (Transaction tr : wins) {
+                try {
+                    tr = transactionDAO.lockTransactionForRetry(tr.getTransactionID());
+                    processJackpotOnExternalSide(tr);
+                    tr.setTransactionStatus(TransactionStatus.COMPLETED);
+                } catch (ExternalServiceException e) {
+                    log.debug("ExternalServiceException");
+                } catch (Exception e) {
+                    log.error(e.getMessage(), e);
+                } finally {
+                    if (tr != null && tr.getTransactionStatus().equals(TransactionStatus.PROCESSING)) {
+                        tr.setTransactionStatus(TransactionStatus.ERROR);
+                        transactionDAO.updateTransaction(tr);
+                    }
+                }
+            }
+        }
+    }
+
+    @Override
+    public void endRound(long brandID, String vendorID, Player player, long gameID, String incomingRoundID) {
+        Game game = gameDAO.getGame(gameID);
+        Transaction tr = transactionDAO.findTransactionByIncomingRoundID(vendorID, incomingRoundID, TransactionType.BET);
+        if (tr == null) {
+            tr = transactionDAO.findTransactionByIncomingRoundID(vendorID, incomingRoundID, TransactionType.WIN);
+        }
+        if (tr != null) {
+            externalClient.endRound(brandID, vendorID, player.getExternalPlayerID(), game.getSymbol(), tr.getRoundID());
+        }
+    }
+
+    @Override
+    public void refund() {
+        List<Long> brandIDs = brandDAO.getAllExternalBrandIDs();
+        for(Long brandID : brandIDs) {
+
+            Calendar cal = Calendar.getInstance();
+            int MAX_PROCESS_HOURS = ConfUtils.getIntValue(brandID, 24*30, GeneralSettingKey.ASYNCHRONOUS_REQUEST_RETRY_MAX_PROCESS_HOURS, generalSettingDAO);
+            cal.add(Calendar.HOUR_OF_DAY, - MAX_PROCESS_HOURS);
+            Date createDate = cal.getTime();
+
+            cal = Calendar.getInstance();
+            int RETRY_DELAY_BETWEEN = ConfUtils.getIntValue(brandID, 1, GeneralSettingKey.ASYNCHRONOUS_REQUEST_RETRY_DELAY_BETWEEN_ATTEMPTS_IN_MINUTES, generalSettingDAO);
+            cal.add(Calendar.MINUTE, - RETRY_DELAY_BETWEEN);
+            Date lastProcessing = cal.getTime();
+
+            List<Transaction> refunds = transactionDAO.findTransactionsForRetry(brandID, createDate, lastProcessing, TransactionType.REFUND);
+            for (Transaction tr : refunds) {
+                try {
+                    tr = transactionDAO.lockTransactionForRetry(tr.getTransactionID());
+                    if (tr != null) {
+                        Transaction bet = transactionDAO.findTransactionByIncomingTransactionID(tr.getVendorID(), tr.getIncomingTransactionID(), TransactionType.BET, null);
+                        String extTransactionID = externalClient.refund(tr.getBrandID(), tr.getVendorID(), tr.getExternalPlayerID(), bet.getTransactionID());
+                        tr.setExternalTransactionID(StringUtils.getNullIsBlank(extTransactionID));
+                        tr.setTransactionStatus(TransactionStatus.COMPLETED);
+                    }
+                } catch (Exception e) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Refund [" + tr.getTransactionID() + "] processing failed.");
+                    }
+                } finally {
+                    if (tr != null && tr.getTransactionStatus().equals(TransactionStatus.PROCESSING)) {
+                        tr.setTransactionStatus(TransactionStatus.ERROR);
+                    }
+                    transactionDAO.updateTransaction(tr);
+                }
+            }
+        }
+    }
+
+    @Override
+    public void win() {
+        List<Long> brandIDs = brandDAO.getAllExternalBrandIDs();
+        for(Long brandID : brandIDs) {
+
+            Calendar cal = Calendar.getInstance();
+            int MAX_PROCESS_HOURS = ConfUtils.getIntValue(brandID, 24*30, GeneralSettingKey.ASYNCHRONOUS_REQUEST_RETRY_MAX_PROCESS_HOURS, generalSettingDAO);
+            cal.add(Calendar.HOUR_OF_DAY, - MAX_PROCESS_HOURS);
+            Date createDate = cal.getTime();
+
+            cal = Calendar.getInstance();
+            int RETRY_DELAY_BETWEEN = ConfUtils.getIntValue(brandID, 1, GeneralSettingKey.ASYNCHRONOUS_REQUEST_RETRY_DELAY_BETWEEN_ATTEMPTS_IN_MINUTES, generalSettingDAO);
+            cal.add(Calendar.MINUTE, - RETRY_DELAY_BETWEEN);
+            Date lastProcessing = cal.getTime();
+
+            List<Transaction> wins = transactionDAO.findTransactionsForRetry(brandID, createDate, lastProcessing, TransactionType.WIN);
+            for (Transaction tr : wins) {
+                try {
+                    tr = transactionDAO.lockTransactionForRetry(tr.getTransactionID());
+                    if (tr != null) {
+                        processWinOnExternalSide(tr, true);
+                        tr.setTransactionStatus(TransactionStatus.COMPLETED);
+                    }
+                } catch (Exception e) {
+                    if (tr != null && tr.getTransactionStatus().equals(TransactionStatus.PROCESSING)) {
+                        tr.setTransactionStatus(TransactionStatus.ERROR);
+                        transactionDAO.updateTransaction(tr);
+                    }
+                }
+            }
+        }
+    }
+
+    private Transaction findTransactionByIncomingTransactionID(long brandID, String vendorID, String incomingTransactionID, String incomingRoundID, TransactionType type) {
+        Transaction tr = transactionDAO.findTransactionByIncomingTransactionID(vendorID, incomingTransactionID, type, incomingRoundID);
+        if(log.isDebugEnabled()) {
+            log.debug(tr);
+        }
+        if (tr != null && tr.getTransactionStatus().equals(Transaction.TransactionStatus.PROCESSING)) {
+            int i = ConfUtils.getIntValue(brandID, 0, GeneralSettingKey.CONFIG_DOUBLE_PROCESS_REPEAT, generalSettingDAO);
+            while (tr.getTransactionStatus().equals(Transaction.TransactionStatus.PROCESSING) && i > 0) {
+                if (log.isDebugEnabled()) {
+                    log.debug("PlaySession in status PROCESSING. Repeat[" + i + "]. Wait... ");
+                }
+                try {
+                    Thread.sleep(ConfUtils.getIntValue(brandID, 10, GeneralSettingKey.CONFIG_DOUBLE_PROCESS_TIMEOUT, generalSettingDAO));
+                } catch (InterruptedException e) {
+                    log.error(e.getMessage(), e);
+                }
+                tr = transactionDAO.findTransactionByIncomingTransactionID(vendorID, incomingTransactionID, type, incomingRoundID);
+                i--;
+            }
+            if (log.isDebugEnabled()) {
+                log.debug("Transaction status [" + tr.getTransactionStatus() + "].");
+            }
+        }
+        return tr;
+    }
+
+    private void processWinOnExternalSide(Transaction tr, Boolean isJob) {
+
+        try {
+            TransactionResult res = externalClient.win(tr.getBrandID(),
+                    tr.getVendorID(),
+                    tr.getExternalPlayerID(),
+                    tr.getGameSymbol(),
+                    tr.getRoundID(),
+                    tr.getOriginalRoundID(),
+                    tr.getAmount(),
+                    tr.getIncomingTransactionID().equals("0") ? null : tr.getTransactionID(),
+                    CommonUtils.getRoundDetailsString(tr.getGambling(), false),
+                    tr.getBonusCode(),
+                    tr.getEndRound(),
+                    isJob);
+
+            updatePlaySession(tr, res);
+        } finally {
+            if (tr.getTransactionStatus().equals(TransactionStatus.PROCESSING)) {
+                tr.setTransactionStatus(TransactionStatus.ERROR);
+                transactionDAO.updateTransaction(tr);
+            }
+        }
+    }
+
+	@Override
+	public ScratchCardWinResult scratchCardWin(long brandID, String vendorID, Player player, long promotionId, String prizeTypeId,
+			double offerValue, String currency) {
+		return externalClient.scratchCardWin(brandID, vendorID, player, promotionId, prizeTypeId, offerValue, currency);
+	}
+	
+	
+    private void processJackpotOnExternalSide(Transaction tr) {
+        try {
+            TransactionResult res = externalClient.jackpotWin(tr.getBrandID(),
+                    tr.getVendorID(),
+                    tr.getExternalPlayerID(),
+                    tr.getGameSymbol(),
+                    tr.getRoundID(), 
+                    tr.getOriginalRoundID(),
+                    tr.getAmount(), 
+                    tr.getJackpotID(),
+                    tr.getIncomingTransactionID().equals("0") ? null : tr.getTransactionID(),
+                    CommonUtils.getRoundDetailsString(tr.getGambling(), false),
+                    tr.getEndRound());
+
+            if (log.isDebugEnabled()) {
+                log.debug("processJackpotOnExternalSide response: " + res);
+            }
+
+            updatePlaySession(tr, res);
+        } finally {
+            if (tr.getTransactionStatus().equals(TransactionStatus.PROCESSING)) {
+                tr.setTransactionStatus(TransactionStatus.ERROR);
+                transactionDAO.updateTransaction(tr);
+            }
+        }
+    }
+
+    private void updatePlaySession(Transaction tr, TransactionResult res) {
+        if (res.getStatus() == InternalServiceResponseStatus.OK) {
+            playTransactionDAO.updatePlaySession(tr.getRoundID(), tr.getInternalTransactionID(), tr.getPlayerID(),
+                    res.getCash(), res.getBonus(), res.getUsedBonus(), res.getTransactionId(), tr.getTransactionID());
+            balanceManager.putBalance(new Balance(tr.getPlayerID(), tr.getVendorID(), res.getCash(), res.getBonus()));
+            tr.setCash(res.getCash());
+            tr.setBonus(res.getBonus());
+            tr.setUsedBonus(res.getUsedBonus());
+            tr.setExternalTransactionID(res.getTransactionId());
+            tr.setTransactionStatus(TransactionStatus.COMPLETED);
+            transactionDAO.updateTransaction(tr);
+        }
+    }
+}

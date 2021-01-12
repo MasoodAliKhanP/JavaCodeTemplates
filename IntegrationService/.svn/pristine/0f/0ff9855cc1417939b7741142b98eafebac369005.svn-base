@@ -1,0 +1,56 @@
+#Server configs
+server.context-path=/IntegrationService
+management.context-path=/appManagement
+server.port=8085
+
+#Server management
+endpoints.shutdown.enabled=true
+management.endpoint.shutdown.enabled=true
+
+spring.application.admin.enabled=true
+spring.jmx.enabled=true
+error.whitelabel.enabled=true
+
+##DB
+oracle.datasource.URL=jdbc:oracle:thin:@(DESCRIPTION=\
+(ADDRESS=(PROTOCOL=TCP)(HOST=node1pd)(PORT=1521))\
+(ADDRESS=(PROTOCOL=TCP)(HOST=node2pd)(PORT=1521))\
+    (LOAD_BALANCE=ON)(CONNECT_DATA=\
+(SERVICE_NAME=GRID_DEMO)))
+oracle.datasource.user=topgame5
+oracle.datasource.password=topgame5
+
+oracle.datasource.connectionCachingEnabled=true
+oracle.datasource.connectionCacheProperties.MinLimit=1
+oracle.datasource.connectionCacheProperties.MaxLimit=50
+oracle.datasource.connectionCacheProperties.InitialLimit=1
+oracle.datasource.connectionCacheProperties.ConnectionWaitTimeout=30
+oracle.datasource.connectionCacheProperties.InactivityTimeout=30
+oracle.datasource.connectionCacheProperties.ValidateConnection=true
+
+mysql.datasource.URL=jdbc:mysql://172.16.9.213:3306/quartz?useUnicode=true&characterEncoding=UTF-8
+mysql.datasource.user=root
+mysql.datasource.password=password
+
+##MONGO DB
+mongo.db.replica=172.16.9.213
+mongo.db.database=integration_service_api
+
+#Other settings
+logging.interceptor.log.request=true
+logging.interceptor.log.response=true
+
+url.bonus.service = http://patch-env.biz/BonusService/FreeRoundsAPI/
+url.gamemanagement.service = http://patch-env.biz/GameManagementAPI/
+url.bingoserver.service = http://patch-env.biz/bingo/internal/APIService/
+url.user.service = http://patch-env.biz/UserService/
+#logging.config=./log4j2.xml
+
+management.security.enabled=false
+
+#Redis
+spring.redis.host=redis
+spring.redis.port=6379
+spring.redis.database=2
+spring.redis.pool.max-active=10
+spring.redis.pool.max-idle=10

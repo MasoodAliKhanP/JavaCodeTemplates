@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:sch="http://tempuri.org/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:tns="http://tempuri.org/" targetNamespace="http://tempuri.org/">
+  <wsdl:types>
+    <xs:schema xmlns:cg="http://tempuri.org/" xmlns:xs="http://www.w3.org/2001/XMLSchema" attributeFormDefault="unqualified" elementFormDefault="qualified" targetNamespace="http://tempuri.org/"><xs:complexType name="BaseResponse"><xs:sequence><xs:element minOccurs="0" name="error" type="xs:string"/><xs:element minOccurs="0" name="description" type="xs:string"/></xs:sequence></xs:complexType><xs:element name="AuthenticateRequest"><xs:complexType><xs:sequence><xs:element minOccurs="0" name="secureLogin" type="xs:string"/><xs:element minOccurs="0" name="securePassword" type="xs:string"/><xs:element name="token" type="xs:string"/></xs:sequence></xs:complexType></xs:element><xs:element name="AuthenticateResponse"><xs:complexType><xs:complexContent><xs:extension base="cg:BaseResponse"><xs:sequence><xs:element name="playerId" nillable="true" type="xs:string"/><xs:element minOccurs="0" name="nickname" type="xs:string"/><xs:element name="currency" nillable="true" type="xs:string"/></xs:sequence></xs:extension></xs:complexContent></xs:complexType></xs:element><xs:element name="RefundRequest"><xs:complexType><xs:sequence><xs:element minOccurs="0" name="secureLogin" type="xs:string"/><xs:element minOccurs="0" name="securePassword" type="xs:string"/><xs:element name="playerId" type="xs:string"/><xs:element name="referenceId" type="xs:string"/></xs:sequence></xs:complexType></xs:element><xs:element name="RefundResponse"><xs:complexType><xs:complexContent><xs:extension base="cg:BaseResponse"><xs:sequence><xs:element name="transactionId" nillable="true" type="xs:string"/></xs:sequence></xs:extension></xs:complexContent></xs:complexType></xs:element><xs:element name="GetBalanceRequest"><xs:complexType><xs:sequence><xs:element name="secureLogin" type="xs:string"/><xs:element name="securePassword" type="xs:string"/><xs:element name="playerId" type="xs:string"/><xs:element name="vendorId" type="xs:string"/></xs:sequence></xs:complexType></xs:element><xs:element name="GetBalanceResponse"><xs:complexType><xs:complexContent><xs:extension base="cg:BaseResponse"><xs:sequence><xs:element name="balance" nillable="true" type="cg:Balance"/></xs:sequence></xs:extension></xs:complexContent></xs:complexType></xs:element><xs:element name="BetRequest"><xs:complexType><xs:sequence><xs:element minOccurs="0" name="secureLogin" type="xs:string"/><xs:element minOccurs="0" name="securePassword" type="xs:string"/><xs:element name="playerId" type="xs:string"/><xs:element name="roundId" type="xs:long"/><xs:element name="gameId" type="xs:string"/><xs:element name="referenceId" type="xs:string"/><xs:element name="amount" type="xs:double"/><xs:element name="vendorId" type="xs:string"/><xs:element minOccurs="0" name="timestamp" type="xs:long"/><xs:element name="roundDetails" type="xs:string"/><xs:element minOccurs="0" name="platform" type="xs:string"/><xs:element minOccurs="0" name="bonusCode" type="xs:string"/><xs:element minOccurs="0" name="originalRoundId" type="xs:long"/></xs:sequence></xs:complexType></xs:element><xs:element name="BetResponse"><xs:complexType><xs:complexContent><xs:extension base="cg:BaseResponse"><xs:sequence><xs:element name="transactionId" nillable="true" type="xs:string"/><xs:element name="balance" nillable="true" type="cg:Balance"/><xs:element name="usedBonus" nillable="true" type="xs:double"/></xs:sequence></xs:extension></xs:complexContent></xs:complexType></xs:element><xs:element name="BetResultRequest"><xs:complexType><xs:sequence><xs:element minOccurs="0" name="secureLogin" type="xs:string"/><xs:element minOccurs="0" name="securePassword" type="xs:string"/><xs:element name="playerId" type="xs:string"/><xs:element name="gameId" type="xs:string"/><xs:element name="roundId" type="xs:long"/><xs:element name="referenceId" type="xs:string"/><xs:element name="amount" type="xs:double"/><xs:element name="vendorId" type="xs:string"/><xs:element minOccurs="0" name="timestamp" type="xs:long"/><xs:element name="roundDetails" type="xs:string"/><xs:element minOccurs="0" name="platform" type="xs:string"/><xs:element minOccurs="0" name="bonusCode" type="xs:string"/><xs:element minOccurs="0" name="originalRoundId" type="xs:long"/></xs:sequence></xs:complexType></xs:element><xs:element name="BetResultResponse"><xs:complexType><xs:complexContent><xs:extension base="cg:BaseResponse"><xs:sequence><xs:element name="transactionId" nillable="true" type="xs:string"/><xs:element name="balance" nillable="true" type="cg:Balance"/></xs:sequence></xs:extension></xs:complexContent></xs:complexType></xs:element><xs:element name="BonusWinRequest"><xs:complexType><xs:sequence><xs:element name="secureLogin" type="xs:string"/><xs:element name="securePassword" type="xs:string"/><xs:element name="playerId" type="xs:string"/><xs:element name="referenceId" type="xs:string"/><xs:element name="winAmount" type="xs:double"/><xs:element name="vendorId" type="xs:string"/><xs:element minOccurs="0" name="timestamp" type="xs:long"/><xs:element name="bonusCode" type="xs:string"/></xs:sequence></xs:complexType></xs:element><xs:element name="BonusWinResponse"><xs:complexType><xs:complexContent><xs:extension base="cg:BaseResponse"><xs:sequence><xs:element name="transactionId" nillable="true" type="xs:string"/><xs:element name="balance" nillable="true" type="cg:Balance"/></xs:sequence></xs:extension></xs:complexContent></xs:complexType></xs:element><xs:element name="EndRoundRequest"><xs:complexType><xs:sequence><xs:element name="secureLogin" type="xs:string"/><xs:element name="securePassword" type="xs:string"/><xs:element name="playerId" type="xs:string"/><xs:element name="gameId" type="xs:string"/><xs:element name="roundId" type="xs:long"/><xs:element name="vendorId" type="xs:string"/></xs:sequence></xs:complexType></xs:element><xs:element name="EndRoundResponse"><xs:complexType><xs:complexContent><xs:extension base="cg:BaseResponse"><xs:sequence/></xs:extension></xs:complexContent></xs:complexType></xs:element><xs:element name="GetBulkBalanceRequest"><xs:complexType><xs:sequence><xs:element minOccurs="0" name="secureLogin" type="xs:string"/><xs:element minOccurs="0" name="securePassword" type="xs:string"/><xs:element maxOccurs="unbounded" minOccurs="0" name="players"><xs:complexType><xs:sequence><xs:element name="playerId" type="xs:string"/><xs:element name="vendorId" type="xs:string"/></xs:sequence></xs:complexType></xs:element></xs:sequence></xs:complexType></xs:element><xs:element name="GetBulkBalanceResponse"><xs:complexType><xs:complexContent><xs:extension base="cg:BaseResponse"><xs:sequence><xs:element maxOccurs="unbounded" minOccurs="0" name="PlayerList"><xs:complexType><xs:sequence><xs:element name="playerId" type="xs:string"/><xs:element name="balance" type="cg:Balance"/></xs:sequence></xs:complexType></xs:element></xs:sequence></xs:extension></xs:complexContent></xs:complexType></xs:element><xs:element name="BuyBingoCardsRequest"><xs:complexType><xs:sequence><xs:element minOccurs="0" name="secureLogin" type="xs:string"/><xs:element minOccurs="0" name="securePassword" type="xs:string"/><xs:element name="reference" type="xs:string"/><xs:element name="playerId" type="xs:string"/><xs:element name="roomId" type="xs:long"/><xs:element name="roundId" type="xs:long"/><xs:element name="amount" nillable="true" type="xs:double"/><xs:element name="cardsNumber" type="xs:int"/><xs:element name="packSize" type="xs:int"/><xs:element name="vendorId" type="xs:string"/></xs:sequence></xs:complexType></xs:element><xs:element name="BuyBingoCardsResponse"><xs:complexType><xs:complexContent><xs:extension base="cg:BaseResponse"><xs:sequence><xs:element name="transactionId" nillable="true" type="xs:string"/><xs:element minOccurs="0" name="balance" type="cg:Balance"/><xs:element minOccurs="0" name="proposedCardsNumber" type="xs:int"/></xs:sequence></xs:extension></xs:complexContent></xs:complexType></xs:element><xs:element name="ProcessBingoResultsRequest"><xs:complexType><xs:sequence><xs:element minOccurs="0" name="secureLogin" type="xs:string"/><xs:element minOccurs="0" name="securePassword" type="xs:string"/><xs:element name="roundId" type="xs:long"/><xs:element name="roomId" type="xs:long"/><xs:element maxOccurs="unbounded" minOccurs="0" name="gameResultList" type="cg:BingoGameResult"/></xs:sequence></xs:complexType></xs:element><xs:element name="ProcessBingoResultsResponse"><xs:complexType><xs:complexContent><xs:extension base="cg:BaseResponse"><xs:sequence><xs:element maxOccurs="unbounded" minOccurs="0" name="bingoResultList" type="cg:BingoResult"/></xs:sequence></xs:extension></xs:complexContent></xs:complexType></xs:element><xs:element name="BuyPreorderedCardsRequest"><xs:complexType><xs:sequence><xs:element minOccurs="0" name="secureLogin" type="xs:string"/><xs:element minOccurs="0" name="securePassword" type="xs:string"/><xs:element name="roomId" type="xs:long"/><xs:element name="roundId" type="xs:long"/><xs:element maxOccurs="unbounded" name="PreorderedCards"><xs:complexType><xs:sequence><xs:element name="reference" type="xs:string"/><xs:element name="playerId" type="xs:string"/><xs:element name="amount" type="xs:double"/><xs:element name="cardCost" type="xs:double"/><xs:element name="cardsNumber" type="xs:int"/><xs:element name="packSize" type="xs:int"/><xs:element name="vendorId" type="xs:string"/></xs:sequence></xs:complexType></xs:element></xs:sequence></xs:complexType></xs:element><xs:element name="BuyPreorderedCardsResponse"><xs:complexType><xs:complexContent><xs:extension base="cg:BaseResponse"><xs:sequence><xs:element maxOccurs="unbounded" minOccurs="0" name="PurchaseResults"><xs:complexType><xs:complexContent><xs:extension base="cg:BaseResponse"><xs:sequence><xs:element name="transactionId" nillable="true" type="xs:string"/><xs:element name="reference" type="xs:string"/><xs:element name="boughtCardsNumber" type="xs:int"/><xs:element name="balance" type="cg:Balance"/></xs:sequence></xs:extension></xs:complexContent></xs:complexType></xs:element></xs:sequence></xs:extension></xs:complexContent></xs:complexType></xs:element><xs:complexType name="Balance"><xs:sequence><xs:element name="vendorId" type="xs:string"/><xs:element name="cash" type="xs:double"/><xs:element name="bonus" type="xs:double"/><xs:element minOccurs="0" name="age" type="xs:long"/></xs:sequence></xs:complexType><xs:complexType name="BingoGameResult"><xs:sequence><xs:element name="reference" type="xs:string"/><xs:element name="resultType" type="xs:string"/><xs:element name="playerId" type="xs:string"/><xs:element name="amount" type="xs:double"/><xs:element name="vendorId" type="xs:string"/></xs:sequence></xs:complexType><xs:complexType name="BingoResult"><xs:complexContent><xs:extension base="cg:BaseResponse"><xs:sequence><xs:element name="transactionId" nillable="true" type="xs:string"/><xs:element name="reference" nillable="true" type="xs:string"/><xs:element name="balance" type="cg:Balance"/></xs:sequence></xs:extension></xs:complexContent></xs:complexType></xs:schema>
+  </wsdl:types>
+  <wsdl:message name="BetRequest">
+    <wsdl:part element="tns:BetRequest" name="BetRequest">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="BonusWinResponse">
+    <wsdl:part element="tns:BonusWinResponse" name="BonusWinResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="ProcessBingoResultsRequest">
+    <wsdl:part element="tns:ProcessBingoResultsRequest" name="ProcessBingoResultsRequest">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="BonusWinRequest">
+    <wsdl:part element="tns:BonusWinRequest" name="BonusWinRequest">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="BuyBingoCardsResponse">
+    <wsdl:part element="tns:BuyBingoCardsResponse" name="BuyBingoCardsResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="GetBulkBalanceResponse">
+    <wsdl:part element="tns:GetBulkBalanceResponse" name="GetBulkBalanceResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="AuthenticateResponse">
+    <wsdl:part element="tns:AuthenticateResponse" name="AuthenticateResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="BetResultResponse">
+    <wsdl:part element="tns:BetResultResponse" name="BetResultResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="EndRoundResponse">
+    <wsdl:part element="tns:EndRoundResponse" name="EndRoundResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="BetResultRequest">
+    <wsdl:part element="tns:BetResultRequest" name="BetResultRequest">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="GetBulkBalanceRequest">
+    <wsdl:part element="tns:GetBulkBalanceRequest" name="GetBulkBalanceRequest">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="GetBalanceResponse">
+    <wsdl:part element="tns:GetBalanceResponse" name="GetBalanceResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="BuyBingoCardsRequest">
+    <wsdl:part element="tns:BuyBingoCardsRequest" name="BuyBingoCardsRequest">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="GetBalanceRequest">
+    <wsdl:part element="tns:GetBalanceRequest" name="GetBalanceRequest">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="AuthenticateRequest">
+    <wsdl:part element="tns:AuthenticateRequest" name="AuthenticateRequest">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="RefundRequest">
+    <wsdl:part element="tns:RefundRequest" name="RefundRequest">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="BuyPreorderedCardsResponse">
+    <wsdl:part element="tns:BuyPreorderedCardsResponse" name="BuyPreorderedCardsResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="ProcessBingoResultsResponse">
+    <wsdl:part element="tns:ProcessBingoResultsResponse" name="ProcessBingoResultsResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="EndRoundRequest">
+    <wsdl:part element="tns:EndRoundRequest" name="EndRoundRequest">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="BetResponse">
+    <wsdl:part element="tns:BetResponse" name="BetResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="BuyPreorderedCardsRequest">
+    <wsdl:part element="tns:BuyPreorderedCardsRequest" name="BuyPreorderedCardsRequest">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="RefundResponse">
+    <wsdl:part element="tns:RefundResponse" name="RefundResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:portType name="ExternalAPI">
+    <wsdl:operation name="Bet">
+      <wsdl:input message="tns:BetRequest" name="BetRequest">
+    </wsdl:input>
+      <wsdl:output message="tns:BetResponse" name="BetResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="BonusWin">
+      <wsdl:input message="tns:BonusWinRequest" name="BonusWinRequest">
+    </wsdl:input>
+      <wsdl:output message="tns:BonusWinResponse" name="BonusWinResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="ProcessBingoResults">
+      <wsdl:input message="tns:ProcessBingoResultsRequest" name="ProcessBingoResultsRequest">
+    </wsdl:input>
+      <wsdl:output message="tns:ProcessBingoResultsResponse" name="ProcessBingoResultsResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="BuyBingoCards">
+      <wsdl:input message="tns:BuyBingoCardsRequest" name="BuyBingoCardsRequest">
+    </wsdl:input>
+      <wsdl:output message="tns:BuyBingoCardsResponse" name="BuyBingoCardsResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetBulkBalance">
+      <wsdl:input message="tns:GetBulkBalanceRequest" name="GetBulkBalanceRequest">
+    </wsdl:input>
+      <wsdl:output message="tns:GetBulkBalanceResponse" name="GetBulkBalanceResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="Authenticate">
+      <wsdl:input message="tns:AuthenticateRequest" name="AuthenticateRequest">
+    </wsdl:input>
+      <wsdl:output message="tns:AuthenticateResponse" name="AuthenticateResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="BetResult">
+      <wsdl:input message="tns:BetResultRequest" name="BetResultRequest">
+    </wsdl:input>
+      <wsdl:output message="tns:BetResultResponse" name="BetResultResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="EndRound">
+      <wsdl:input message="tns:EndRoundRequest" name="EndRoundRequest">
+    </wsdl:input>
+      <wsdl:output message="tns:EndRoundResponse" name="EndRoundResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetBalance">
+      <wsdl:input message="tns:GetBalanceRequest" name="GetBalanceRequest">
+    </wsdl:input>
+      <wsdl:output message="tns:GetBalanceResponse" name="GetBalanceResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="Refund">
+      <wsdl:input message="tns:RefundRequest" name="RefundRequest">
+    </wsdl:input>
+      <wsdl:output message="tns:RefundResponse" name="RefundResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="BuyPreorderedCards">
+      <wsdl:input message="tns:BuyPreorderedCardsRequest" name="BuyPreorderedCardsRequest">
+    </wsdl:input>
+      <wsdl:output message="tns:BuyPreorderedCardsResponse" name="BuyPreorderedCardsResponse">
+    </wsdl:output>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="ExternalAPISoap11" type="tns:ExternalAPI">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="Bet">
+      <soap:operation soapAction=""/>
+      <wsdl:input name="BetRequest">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="BetResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="BonusWin">
+      <soap:operation soapAction=""/>
+      <wsdl:input name="BonusWinRequest">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="BonusWinResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="ProcessBingoResults">
+      <soap:operation soapAction=""/>
+      <wsdl:input name="ProcessBingoResultsRequest">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="ProcessBingoResultsResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="BuyBingoCards">
+      <soap:operation soapAction=""/>
+      <wsdl:input name="BuyBingoCardsRequest">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="BuyBingoCardsResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetBulkBalance">
+      <soap:operation soapAction=""/>
+      <wsdl:input name="GetBulkBalanceRequest">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="GetBulkBalanceResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="Authenticate">
+      <soap:operation soapAction=""/>
+      <wsdl:input name="AuthenticateRequest">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="AuthenticateResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="BetResult">
+      <soap:operation soapAction=""/>
+      <wsdl:input name="BetResultRequest">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="BetResultResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="EndRound">
+      <soap:operation soapAction=""/>
+      <wsdl:input name="EndRoundRequest">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="EndRoundResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetBalance">
+      <soap:operation soapAction=""/>
+      <wsdl:input name="GetBalanceRequest">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="GetBalanceResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="Refund">
+      <soap:operation soapAction=""/>
+      <wsdl:input name="RefundRequest">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="RefundResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="BuyPreorderedCards">
+      <soap:operation soapAction=""/>
+      <wsdl:input name="BuyPreorderedCardsRequest">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="BuyPreorderedCardsResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="ExternalService">
+    <wsdl:port binding="tns:ExternalAPISoap11" name="ExternalAPISoap11">
+      <soap:address location="http://127.0.0.1:8081/emulator-v3/service"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

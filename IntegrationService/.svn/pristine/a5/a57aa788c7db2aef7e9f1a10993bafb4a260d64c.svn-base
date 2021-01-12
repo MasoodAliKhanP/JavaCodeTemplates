@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+		   xmlns:cg="http://gametechclubs.biz/casino/frb/external/schemas"
+           targetNamespace="http://gametechclubs.biz/casino/frb/external/schemas"
+           elementFormDefault="qualified">
+
+	<xs:element name="CreateFRBRequest">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="secureLogin" type="xs:string" />
+				<xs:element name="securePassword" type="xs:string" />
+				<xs:element name="playerID" type="xs:string"/>
+				<xs:element name="currency" type="xs:string"/>
+				<xs:element name="gameIDList" type="xs:string"/>
+				<xs:element name="rounds" type="xs:int" nillable="false" />
+                <xs:element name="bonusCode" type="xs:string" />
+                <xs:element name="coinValue" type="xs:double" />
+				<xs:element name="expirationDate" type="xs:dateTime" />
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="CreateFRBResponse">
+		<xs:complexType>
+			<xs:sequence>
+                <xs:element name="externalBonusID" type="xs:string" nillable="true"/>
+                <xs:element name="error" type="xs:string" minOccurs="0" />
+				<xs:element name="description" type="xs:string" minOccurs="0" />
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+
+	<xs:element name="CheckFRBRequest">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="secureLogin" type="xs:string" />
+				<xs:element name="securePassword" type="xs:string" />
+				<xs:element name="bonusCode" type="xs:string" />
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="CheckFRBResponse">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="externalBonusID" type="xs:string" nillable="true"/>
+				<xs:element name="error" type="xs:string" minOccurs="0" />
+				<xs:element name="description" type="xs:string" minOccurs="0" />
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+
+	<xs:element name="CancelFRBRequest">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="secureLogin" type="xs:string" />
+				<xs:element name="securePassword" type="xs:string" />
+				<xs:element name="externalBonusID" type="xs:string" />
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="CancelFRBResponse">
+		<xs:complexType>
+			<xs:sequence>
+                <xs:element name="error" type="xs:string" minOccurs="0" />
+				<xs:element name="description" type="xs:string" minOccurs="0" />
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+
+	<xs:element name="InfoFRBRequest">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="secureLogin" type="xs:string" />
+				<xs:element name="securePassword" type="xs:string" />
+				<xs:element name="playerID" type="xs:string" />
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="InfoFRBResponse">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="bonuses" type="cg:FRBonus" maxOccurs="unbounded" nillable="true"/>
+				<xs:element name="error" type="xs:string" minOccurs="0" />
+				<xs:element name="description" type="xs:string" minOccurs="0" />
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:complexType name="FRBonus">
+		<xs:sequence>
+			<xs:element name="externalBonusID" type="xs:string" />
+			<xs:element name="createDate" type="xs:dateTime"/>
+			<xs:element name="expireDate" type="xs:dateTime" nillable="true"/>
+			<xs:element name="games" type="xs:string" />
+			<xs:element name="initialRounds" type="xs:int" />
+			<xs:element name="playedRounds" type="xs:int" />
+		</xs:sequence>
+	</xs:complexType>
+</xs:schema>

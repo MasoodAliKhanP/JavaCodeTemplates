@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>com.connectpay.nano</groupId>
+	<artifactId>connectpay-nano</artifactId>
+	<version>1.0</version>
+	<name>connectpay-nano</name>
+	<url>http://maven.apache.org</url>
+	<packaging>pom</packaging>
+
+
+	<parent>
+		<groupId>com.connectpay.bom</groupId>
+		<artifactId>connectpay-bom</artifactId>
+		<version>1.0</version>
+	</parent>
+
+	<dependencies>
+
+		<dependency>
+			<groupId>com.connectpay.dto</groupId>
+			<artifactId>connectpay-dto</artifactId>
+			<version>1.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.connectpay.utils</groupId>
+			<artifactId>connectpay-utils</artifactId>
+			<version>1.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.connectpay.pojo</groupId>
+			<artifactId>connectpay-pojo</artifactId>
+			<version>1.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.connectpay.http</groupId>
+			<artifactId>http-service</artifactId>
+			<version>1.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.connectpay.email</groupId>
+			<artifactId>email-service</artifactId>
+			<version>1.0</version>
+		</dependency>
+	</dependencies>
+	<modules>
+		<module>connectpay-nano-utils</module>
+		<module>connectpay-nano-constants</module>
+		<module>connectpay-nano-service</module>
+		<module>connectpay-nano-model</module>
+	</modules>
+</project>

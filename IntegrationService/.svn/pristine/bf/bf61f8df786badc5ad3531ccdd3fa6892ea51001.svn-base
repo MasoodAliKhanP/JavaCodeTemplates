@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ehcache xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" dynamicConfig="true" xsi:noNamespaceSchemaLocation="ehcache.xsd">
+
+    <diskStore path="java.io.tmpdir" />
+
+    <defaultCache maxElementsInMemory="10000" eternal="false"
+                  timeToIdleSeconds="120" timeToLiveSeconds="120" overflowToDisk="false"
+                  diskSpoolBufferSizeMB="30" maxElementsOnDisk="1000" diskPersistent="false"
+                  diskExpiryThreadIntervalSeconds="120" memoryStoreEvictionPolicy="LRU" />
+
+
+    <cache name="getBrandByIdentifier"
+           eternal="false"
+           maxElementsInMemory="1000"
+           overflowToDisk="false"
+           timeToLiveSeconds="300">
+    </cache>
+
+
+    <cache name="getAllExternalBrandIDs"
+           eternal="false"
+           maxElementsInMemory="5000"
+           overflowToDisk="false"
+           timeToLiveSeconds="300">
+    </cache>
+
+    <cache name="configuration"
+           eternal="false"
+           maxElementsInMemory="100"
+           overflowToDisk="false"
+           timeToLiveSeconds="300">
+    </cache>
+
+    <cache name="getCasinoGames"
+           eternal="false"
+           maxElementsInMemory="10"
+           overflowToDisk="false"
+           timeToLiveSeconds="300">
+    </cache>
+    
+    <cache name="getCasinoGamesByType"
+           eternal="false"
+           maxElementsInMemory="10"
+           overflowToDisk="false"
+           timeToLiveSeconds="300">
+    </cache>
+
+    <cache name="getGame"
+           eternal="false"
+           maxElementsInMemory="100"
+           overflowToDisk="false"
+           timeToLiveSeconds="300">
+    </cache>
+
+	<cache name="generalSettingCache"
+           eternal="false"
+           maxElementsInMemory="600"
+           overflowToDisk="false"
+           timeToLiveSeconds="300">
+    </cache>
+
+    <cache name="brandCache"
+           eternal="false"
+           maxElementsInMemory="2"
+           overflowToDisk="false"
+           timeToLiveSeconds="300">
+    </cache>
+
+    <cache name="authClientCache"
+           eternal="false"
+           maxElementsInMemory="50"
+           overflowToDisk="false"
+           timeToLiveSeconds="300">
+    </cache>
+
+    <cache name="dataClientCache"
+           eternal="false"
+           maxElementsInMemory="50"
+           overflowToDisk="false"
+           timeToLiveSeconds="300">
+    </cache>
+</ehcache>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:cg="http://gametechclubs.biz/casino/game/external/schemas"
+           targetNamespace="http://gametechclubs.biz/casino/game/external/schemas" elementFormDefault="qualified">
+
+
+    <xs:element name="GetCasinoGamesRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="secureLogin" type="xs:string"/>
+                <xs:element name="securePassword" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="GetCasinoGamesResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="gameList" type="cg:CasinoGame" minOccurs="1" maxOccurs="unbounded" nillable="true"/>
+                <xs:element name="error" type="xs:string" minOccurs="0"/>
+                <xs:element name="description" type="xs:string" minOccurs="0"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:complexType name="CasinoGame">
+        <xs:sequence>
+            <xs:element name="gameID" type="xs:string"/>
+            <xs:element name="gameName" type="xs:string"/>
+            <xs:element name="gameTypeID" type="xs:string" minOccurs="0"/>
+            <xs:element name="typeDescription" type="xs:string" minOccurs="0"/>
+            <xs:element name="technology" type="xs:string"/>
+            <xs:element name="platform" type="cg:ClientPlatform" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:simpleType name="ClientPlatform">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="MOBILE"/>
+            <xs:enumeration value="WEB"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+</xs:schema>

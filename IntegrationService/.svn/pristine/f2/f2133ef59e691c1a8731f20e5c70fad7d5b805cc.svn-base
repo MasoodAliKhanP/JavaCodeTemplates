@@ -1,0 +1,504 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:cg="http://gametechclubs.biz/bingo/external/schemas"
+           targetNamespace="http://gametechclubs.biz/bingo/external/schemas"
+           elementFormDefault="qualified">
+
+    <xs:complexType name="CurrencyEntry">
+        <xs:sequence>
+            <xs:element name="symbol" type="xs:string"/>
+            <xs:element name="value" type="xs:double"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="BaseRequest">
+        <xs:sequence>
+            <xs:element name="secureLogin" type="xs:string"/>
+            <xs:element name="securePassword" type="xs:string"/>
+        </xs:sequence>
+    </xs:complexType>
+    <xs:complexType name="BaseResponse">
+        <xs:sequence>
+            <xs:element minOccurs="0" name="error" type="xs:string"/>
+            <xs:element minOccurs="0" name="description" type="xs:string"/>
+        </xs:sequence>
+    </xs:complexType>
+
+
+    <xs:element name="roomListRequest">
+        <xs:complexType>
+            <xs:complexContent>
+                <xs:extension base="cg:BaseRequest">
+                    <xs:sequence>
+                        <xs:element name="playerID" type="xs:string" minOccurs="0"/>
+                        <xs:element name="language" type="xs:string" nillable="true"/>
+                    </xs:sequence>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="roomListResponse">
+        <xs:complexType>
+            <xs:complexContent>
+                <xs:extension base="cg:BaseResponse">
+                    <xs:sequence>
+                        <xs:element name="activeRoomList" type="cg:ActiveRoom" minOccurs="0" maxOccurs="unbounded"/>
+                    </xs:sequence>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:complexType name="ActiveRoom">
+        <xs:sequence>
+            <xs:element name="roomID" type="xs:long"/>
+            <xs:element name="roomName" type="xs:string"/>
+            <xs:element name="bingoType" type="xs:int"/>
+            <xs:element name="cardCost" type="cg:CurrencyEntry" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="gamePrize" type="cg:CurrencyEntry" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="nextGameStart" type="xs:dateTime" nillable="true"/>
+            <xs:element name="jackpotAmount" type="cg:CurrencyEntry" nillable="true"  minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="playersBoughtCards" type="xs:int"/>
+            <xs:element name="playersInRoom" type="xs:int"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:element name="availableGamesRequest">
+        <xs:complexType>
+            <xs:complexContent>
+                <xs:extension base="cg:BaseRequest">
+                    <xs:sequence>
+                        <xs:element name="date" type="xs:date"/>
+                        <xs:element name="hour" type="xs:int"/>
+                        <xs:element name="playerID" type="xs:string"/>
+                        <xs:element name="language" type="xs:string" nillable="true"/>
+                    </xs:sequence>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="availableGamesResponse">
+        <xs:complexType>
+            <xs:complexContent>
+                <xs:extension base="cg:BaseResponse">
+                    <xs:sequence>
+                        <xs:element name="roomList" type="cg:Room" minOccurs="1" maxOccurs="unbounded" nillable="true"/>
+                    </xs:sequence>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+    <xs:complexType name="Room">
+        <xs:sequence>
+            <xs:element name="roomID" type="xs:long" nillable="true"/>
+            <xs:element name="roomName" type="xs:string" nillable="true"/>
+            <xs:element name="bingoType" type="xs:int"/>
+            <xs:element name="gameList" type="cg:Game" minOccurs="1" maxOccurs="unbounded" nillable="true"/>
+        </xs:sequence>
+    </xs:complexType>
+    <xs:complexType name="Game">
+        <xs:sequence>
+            <xs:element name="gameID" type="xs:long"/>
+            <xs:element name="gameName" type="xs:string"/>
+            <xs:element name="serialNumber" type="xs:int"/>
+            <xs:element name="maxCardsNumber" type="xs:int"/>
+            <xs:element name="cardCost" type="cg:CurrencyEntry" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="purchaseMode" type="xs:string"/>
+            <xs:element name="players" type="xs:int"/>
+            <xs:element name="boughtCardsNumber" type="xs:int"/>
+            <xs:element name="freeCardsNumber" type="xs:int"/>
+            <xs:element name="totalAmount" type="cg:CurrencyEntry" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:element name="preorderCardsRequest">
+        <xs:complexType>
+            <xs:complexContent>
+                <xs:extension base="cg:BaseRequest">
+                    <xs:sequence>
+                        <xs:element name="date" type="xs:date"/>
+                        <xs:element name="hour" type="xs:int"/>
+                        <xs:element name="playerID" type="xs:string"/>
+                        <xs:element name="nickname" type="xs:string" minOccurs="0"/>
+                        <xs:element name="currency" type="xs:string" minOccurs="0"/>
+                        <xs:element name="roomID" type="xs:long"/>
+                        <xs:element name="preorderCardList" type="cg:PreorderCard" minOccurs="1" maxOccurs="unbounded"/>
+                    </xs:sequence>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="preorderCardsResponse">
+        <xs:complexType>
+            <xs:complexContent>
+                <xs:extension base="cg:BaseResponse">
+                    <xs:sequence>
+                        <xs:element name="preorderCardList" type="cg:PreorderCard" minOccurs="1" maxOccurs="unbounded" nillable="true"/>
+                    </xs:sequence>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+    <xs:complexType name="PreorderCard">
+        <xs:complexContent>
+            <xs:extension base="cg:BaseResponse">
+                <xs:sequence>
+                    <xs:element name="gameID" type="xs:long" />
+                    <xs:element name="serialNumber" type="xs:int"/>
+                    <xs:element name="cardNumber" type="xs:int"/>
+                </xs:sequence>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <xs:element name="preorderedReportRequest">
+        <xs:complexType>
+            <xs:complexContent>
+                <xs:extension base="cg:BaseRequest">
+                    <xs:sequence>
+                        <xs:element name="playerID" type="xs:string"/>
+                        <xs:element name="dateFrom" type="xs:dateTime"/>
+                        <xs:element name="dateTo" type="xs:dateTime"/>
+                        <xs:element name="language" type="xs:string" nillable="true"/>
+                    </xs:sequence>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="preorderedReportResponse">
+        <xs:complexType>
+            <xs:complexContent>
+                <xs:extension base="cg:BaseResponse">
+                    <xs:sequence>
+                        <xs:element name="preorderedList" type="cg:Preordered" minOccurs="1" maxOccurs="unbounded"
+                                    nillable="true"/>
+                    </xs:sequence>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+    <xs:complexType name="Preordered">
+        <xs:sequence>
+            <xs:element name="preorderedDate" type="xs:dateTime"/>
+            <xs:element name="sessionStartDate" type="xs:dateTime"/>
+            <xs:element name="gameID" type="xs:long"/>
+            <xs:element name="gameName" type="xs:string" nillable="true"/>
+            <xs:element name="bingoType" type="xs:int"/>
+            <xs:element name="roomID" type="xs:long"/>
+            <xs:element name="roomName" type="xs:string" nillable="true"/>
+            <xs:element name="cardNumbers" type="xs:int"/>
+            <xs:element name="cardCost" type="xs:double"/>
+            <xs:element name="purchaseMode" type="xs:string"/>
+            <xs:element name="roundID" type="xs:long"/>
+            <xs:element name="currency" type="xs:string"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:element name="cancelPreorderedCardsRequest">
+        <xs:complexType>
+            <xs:complexContent>
+                <xs:extension base="cg:BaseRequest">
+                    <xs:sequence>
+                        <xs:element name="playerID" type="xs:string"/>
+                        <xs:element name="cancelPreorderedList" type="cg:CancelPreordered" minOccurs="1" maxOccurs="unbounded"/>
+                    </xs:sequence>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="cancelPreorderedCardsResponse">
+        <xs:complexType>
+            <xs:complexContent>
+                <xs:extension base="cg:BaseResponse">
+                    <xs:sequence>
+                        <xs:element name="cancelPreorderedList" type="cg:CancelPreordered" minOccurs="1" maxOccurs="unbounded"
+                                    nillable="true"/>
+                    </xs:sequence>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+    <xs:complexType name="CancelPreordered">
+        <xs:complexContent>
+            <xs:extension base="cg:BaseResponse">
+                <xs:sequence>
+                    <xs:element name="preorderDate" type="xs:dateTime"/>
+                    <xs:element name="roundID" type="xs:long"/>
+                </xs:sequence>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <xs:element name="bingoJackpotsRequest">
+        <xs:complexType>
+            <xs:complexContent>
+                <xs:extension base="cg:BaseRequest">
+                    <xs:sequence>
+                        <xs:element name="language" type="xs:string" nillable="true"/>
+                    </xs:sequence>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="bingoJackpotsResponse">
+        <xs:complexType>
+            <xs:complexContent>
+                <xs:extension base="cg:BaseResponse">
+                    <xs:sequence>
+                        <xs:element name="jackpotList" type="cg:Jackpot" minOccurs="1" maxOccurs="unbounded" nillable="true"/>
+                    </xs:sequence>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+    <xs:complexType name="Jackpot">
+        <xs:sequence>
+            <xs:element name="jackpotName" type="xs:string"/>
+            <xs:element name="bingoType" type="xs:int"/>
+            <xs:element name="jackpotAmount" nillable="true" type="cg:CurrencyEntry" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:element name="bingoHistoryRequest">
+        <xs:complexType>
+            <xs:complexContent>
+                <xs:extension base="cg:BaseRequest">
+                    <xs:sequence>
+                        <xs:element name="roundID" type="xs:long"/>
+                        <xs:element name="language" type="xs:string" nillable="true"/>
+                    </xs:sequence>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="bingoHistoryResponse">
+        <xs:complexType>
+            <xs:complexContent>
+                <xs:extension base="cg:BaseResponse">
+                    <xs:sequence>
+                        <xs:element name="gameName" type="xs:string" nillable="true"/>
+                        <xs:element name="bingoType" type="xs:int"/>
+                        <xs:element name="roundID" type="xs:long" nillable="true"/>
+                        <xs:element name="bingoCalls" type="xs:string" nillable="true"/>
+                        <xs:element name="bingoWinners" type="cg:BingoWinner" minOccurs="1" maxOccurs="unbounded"
+                                    nillable="true"/>
+                    </xs:sequence>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+    <xs:complexType name="BingoWinner">
+        <xs:sequence>
+            <xs:element name="partNumber" type="xs:int"/>
+            <xs:element name="winners" type="xs:string" nillable="true"/>
+            <xs:element name="pattern" type="xs:string"/>
+            <xs:element name="winningCallNumber" type="xs:int"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:element name="roundStatisticsRequest">
+        <xs:complexType>
+            <xs:complexContent>
+                <xs:extension base="cg:BaseRequest">
+                    <xs:sequence>
+                        <xs:element name="roundID" type="xs:long"/>
+                    </xs:sequence>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="roundStatisticsResponse">
+        <xs:complexType>
+            <xs:complexContent>
+                <xs:extension base="cg:BaseResponse">
+                    <xs:sequence>
+                        <xs:element name="roundID" type="xs:long" nillable="true"/>
+                        <xs:element name="boughtCards" type="cg:PlayerCards" minOccurs="1" maxOccurs="unbounded" nillable="true"/>
+                    </xs:sequence>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+    <xs:complexType name="PlayerCards">
+        <xs:sequence>
+            <xs:element name="playerID" type="xs:string"/>
+            <xs:element name="boughtCardsNumber" type="xs:int"/>
+            <xs:element name="givenCardsNumber" type="xs:int"/>
+            <xs:element name="cardCost" type="xs:double" nillable="true"/>
+            <xs:element name="currency" type="xs:string"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:element name="transactionReportRequest">
+        <xs:complexType>
+            <xs:complexContent>
+                <xs:extension base="cg:BaseRequest">
+                    <xs:sequence>
+                        <xs:element name="playerID" type="xs:string"/>
+                        <xs:element name="startDate" type="xs:date"/>
+                        <xs:element name="endDate" type="xs:date"/>
+                        <xs:element name="transactionType" type="cg:TransactionType" nillable="true" />
+                        <xs:element name="fromIndex" type="xs:long"/>
+                        <xs:element name="pageOffset" type="xs:int"/>
+                    </xs:sequence>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="transactionReportResponse">
+        <xs:complexType>
+            <xs:complexContent>
+                <xs:extension base="cg:BaseResponse">
+                    <xs:sequence>
+                        <xs:element name="count" type="xs:long" nillable="true"/>
+                        <xs:element name="transactions" type="cg:Transaction" minOccurs="1" maxOccurs="unbounded" nillable="true"/>
+                    </xs:sequence>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+    <xs:complexType name="Transaction">
+        <xs:sequence>
+            <xs:element name="transactionID" type="xs:string" nillable="true"/>
+            <xs:element name="transactionDate" type="xs:dateTime" nillable="true"/>
+            <xs:element name="transactionType" type="cg:TransactionType" nillable="true"/>
+            <xs:element name="amount" type="xs:double" nillable="true"/>
+            <xs:element name="balance" type="cg:Balance" nillable="true"/>
+            <xs:element name="currency" type="xs:string" nillable="true"/>
+        </xs:sequence>
+    </xs:complexType>
+    <xs:complexType name="Balance">
+        <xs:sequence>
+            <xs:element name="cash" type="xs:double"/>
+            <xs:element name="bonus" type="xs:double"/>
+        </xs:sequence>
+    </xs:complexType>
+    <xs:simpleType name="TransactionType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="W"/>
+            <xs:enumeration value="B"/>
+            <xs:enumeration value="L"/>
+            <xs:enumeration value="P"/>
+            <xs:enumeration value="R"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:element name="leadersBoardRequest">
+        <xs:complexType>
+            <xs:complexContent>
+                <xs:extension base="cg:BaseRequest">
+                    <xs:sequence>
+                        <xs:element name="fromDate" type="xs:dateTime"/>
+                        <xs:element name="toDate" type="xs:dateTime"/>
+                        <xs:element name="roomID" type="xs:long"/>
+                    </xs:sequence>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="leadersBoardResponse">
+        <xs:complexType>
+            <xs:complexContent>
+                <xs:extension base="cg:BaseResponse">
+                    <xs:sequence>
+                        <xs:element name="leaderBoards" type="cg:LeaderBoard" minOccurs="1" maxOccurs="unbounded" nillable="true"/>
+                    </xs:sequence>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+    <xs:complexType name="LeaderBoard">
+        <xs:sequence>
+            <xs:element name="playerID" type="xs:string" nillable="true"/>
+            <xs:element name="nickname" type="xs:string"/>
+            <xs:element name="numberOfWonCards" type="xs:int"/>
+            <xs:element name="totalAmount" type="xs:double"/>
+            <xs:element name="currency" type="xs:string"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:element name="jackpotWinnersRequest">
+        <xs:complexType>
+            <xs:complexContent>
+                <xs:extension base="cg:BaseRequest">
+                    <xs:sequence>
+                        <xs:element name="date" type="xs:dateTime"/>
+                        <xs:element name="language" type="xs:string" nillable="true"/>
+                    </xs:sequence>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="jackpotWinnersResponse">
+        <xs:complexType>
+            <xs:complexContent>
+                <xs:extension base="cg:BaseResponse">
+                    <xs:sequence>
+                        <xs:element name="jackpotWinners" type="cg:JackpotWinner" minOccurs="1" maxOccurs="unbounded" nillable="true"/>
+                    </xs:sequence>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+    <xs:complexType name="JackpotWinner">
+        <xs:sequence>
+            <xs:element name="playerID" type="xs:string" minOccurs="0"/>
+            <xs:element name="nickname" type="xs:string" minOccurs="0"/>
+            <xs:element name="amount" type="xs:double"/>
+            <xs:element name="dateTime" type="xs:dateTime"/>
+            <xs:element name="jackpotName" type="xs:string"/>
+            <xs:element name="roomID" type="xs:long"/>
+            <xs:element name="bingoType" type="xs:int"/>
+            <xs:element name="gameName" type="xs:string"/>
+            <xs:element name="roundID" type="xs:long"/>
+            <xs:element name="currency" type="xs:string"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:element name="bingoChatBanRequest">
+        <xs:complexType>
+            <xs:complexContent>
+                <xs:extension base="cg:BaseRequest">
+                    <xs:sequence>
+                        <xs:element name="playerID" type="xs:string"/>
+                        <xs:element name="ban" type="xs:boolean" minOccurs="0"/>
+                    </xs:sequence>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="bingoChatBanResponse">
+        <xs:complexType>
+            <xs:complexContent>
+                <xs:extension base="cg:BaseResponse">
+                    <xs:sequence>
+                        <xs:element name="ban" type="xs:boolean" nillable="true"/>
+                    </xs:sequence>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="changeNicknameRequest">
+        <xs:complexType>
+            <xs:complexContent>
+                <xs:extension base="cg:BaseRequest">
+                    <xs:sequence>
+                        <xs:element name="playerID" type="xs:string"/>
+                        <xs:element name="nickname" type="xs:string"/>
+                    </xs:sequence>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="changeNicknameResponse">
+        <xs:complexType>
+            <xs:complexContent>
+                <xs:extension base="cg:BaseResponse">
+                    <xs:sequence>
+                    </xs:sequence>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+</xs:schema>

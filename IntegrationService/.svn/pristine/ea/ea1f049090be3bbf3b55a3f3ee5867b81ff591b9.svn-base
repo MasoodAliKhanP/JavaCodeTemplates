@@ -1,0 +1,19 @@
+
+
+POST http://172.16.9.213/bingo/internal/APIService/getRoomList
+Content-Type: application/json; charset=UTF-8
+
+{"brandID":12656,"language":"en","playerID":528438}
+
+###
+
+POST http://localhost:8085/IntegrationService/BingoGameAPI/BingoPlayerHistory
+Content-Type: application/json; charset=UTF-8
+X-hash: 44401215469615446c2b0122e1890c27
+
+{"secureLogin": "vitalis", "language": "nl", "playerID": "1623e6952764", "startDate": "1521459289000", "endDate": 2221809823000, "fromIndex": "0", "pageOffset": "50"}
+
+###
+
+
+

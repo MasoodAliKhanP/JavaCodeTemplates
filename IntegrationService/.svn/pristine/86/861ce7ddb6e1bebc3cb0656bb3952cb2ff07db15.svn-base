@@ -1,0 +1,9 @@
+package biz.digitalhouse.integration.v3.dao;
+
+import biz.digitalhouse.integration.v3.model.BonusDetails;
+
+public interface ScratchCardDao {
+	BonusDetails getBonusDetails(String bonusType);
+	
+	void updateScratchCardWinClaim(String externalReference, long memberId, String prizeTypeId, double amount);
+}

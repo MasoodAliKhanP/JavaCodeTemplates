@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+		   xmlns:cg="http://gametechclubs.biz/frb/external/schemas"
+           targetNamespace="http://gametechclubs.biz/frb/external/schemas"
+           elementFormDefault="qualified">
+
+	<xs:complexType name="BaseRequest">
+		<xs:sequence>
+			<xs:element name="secureLogin" type="xs:string"/>
+			<xs:element name="securePassword" type="xs:string"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="BaseResponse">
+		<xs:sequence>
+			<xs:element minOccurs="0" name="error" type="xs:string"/>
+			<xs:element minOccurs="0" name="description" type="xs:string"/>
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:element name="awardFRBRequest">
+		<xs:complexType>
+			<xs:complexContent>
+			<xs:extension base="cg:BaseRequest">
+			<xs:sequence>
+				<xs:element name="playerID" type="xs:string"/>
+				<xs:element name="currency" type="xs:string"/>
+				<xs:element name="nickname" type="xs:string"/>
+				<xs:element name="gameIDList" type="xs:string"/>
+				<xs:element name="rounds" type="xs:int" />
+                <xs:element name="bonusCode" type="xs:string" />
+                <xs:element name="coinValue" type="xs:double" />
+				<xs:element name="expirationDate" type="xs:dateTime" />
+			</xs:sequence>
+			</xs:extension>
+			</xs:complexContent>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="awardFRBResponse">
+		<xs:complexType>
+			<xs:complexContent>
+			<xs:extension base="cg:BaseResponse">
+			<xs:sequence>
+                <xs:element name="externalBonusID" type="xs:string" nillable="true"/>
+			</xs:sequence>
+			</xs:extension>
+			</xs:complexContent>
+		</xs:complexType>
+	</xs:element>
+
+	<xs:element name="checkFRBRequest">
+		<xs:complexType>
+			<xs:complexContent>
+			<xs:extension base="cg:BaseRequest">
+			<xs:sequence>
+				<xs:element name="bonusCode" type="xs:string" />
+			</xs:sequence>
+			</xs:extension>
+			</xs:complexContent>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="checkFRBResponse">
+		<xs:complexType>
+			<xs:complexContent>
+			<xs:extension base="cg:BaseResponse">
+			<xs:sequence>
+				<xs:element name="externalBonusID" type="xs:string" nillable="true"/>
+			</xs:sequence>
+			</xs:extension>
+			</xs:complexContent>
+		</xs:complexType>
+	</xs:element>
+
+	<xs:element name="cancelFRBRequest">
+		<xs:complexType>
+			<xs:complexContent>
+			<xs:extension base="cg:BaseRequest">
+			<xs:sequence>
+				<xs:element name="externalBonusID" type="xs:string" />
+			</xs:sequence>
+			</xs:extension>
+			</xs:complexContent>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="cancelFRBResponse">
+		<xs:complexType>
+			<xs:complexContent>
+			<xs:extension base="cg:BaseResponse">
+			<xs:sequence/>
+			</xs:extension>
+			</xs:complexContent>
+		</xs:complexType>
+	</xs:element>
+
+	<xs:element name="infoFRBRequest">
+		<xs:complexType>
+			<xs:complexContent>
+			<xs:extension base="cg:BaseRequest">
+			<xs:sequence>
+				<xs:element name="playerID" type="xs:string" />
+			</xs:sequence>
+			</xs:extension>
+			</xs:complexContent>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="infoFRBResponse">
+		<xs:complexType>
+			<xs:complexContent>
+			<xs:extension base="cg:BaseResponse">
+			<xs:sequence>
+				<xs:element name="bonuses" type="cg:FRBonus" maxOccurs="unbounded" nillable="true"/>
+			</xs:sequence>
+			</xs:extension>
+			</xs:complexContent>
+		</xs:complexType>
+	</xs:element>
+	<xs:complexType name="FRBonus">
+		<xs:sequence>
+			<xs:element name="externalBonusID" type="xs:string" />
+			<xs:element name="createDate" type="xs:dateTime"/>
+			<xs:element name="expireDate" type="xs:dateTime" nillable="true"/>
+			<xs:element name="games" type="xs:string" />
+			<xs:element name="initialRounds" type="xs:int" />
+			<xs:element name="playedRounds" type="xs:int" />
+		</xs:sequence>
+	</xs:complexType>
+</xs:schema>

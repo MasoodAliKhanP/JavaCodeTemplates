@@ -1,0 +1,481 @@
+package biz.digitalhouse.integration.v3.web.ws.http.internalAPIEndpoint;
+
+import biz.digitalhouse.integration.v3.InternalServiceResponseStatus;
+import biz.digitalhouse.integration.v3.Vendors;
+import biz.digitalhouse.integration.v3.exceptions.ExternalServiceException;
+import biz.digitalhouse.integration.v3.model.Balance;
+import biz.digitalhouse.integration.v3.model.Player;
+import biz.digitalhouse.integration.v3.model.ProcessBingoBucks;
+import biz.digitalhouse.integration.v3.services.balances.BalanceManager;
+import biz.digitalhouse.integration.v3.services.externalClient.ExternalClient;
+import biz.digitalhouse.integration.v3.services.externalClient.ExternalSiteServiceClient;
+import biz.digitalhouse.integration.v3.services.externalClient.dto.*;
+import biz.digitalhouse.integration.v3.services.players.PlayerManager;
+import biz.digitalhouse.integration.v3.services.transactions.PlayTransactionManager;
+import biz.digitalhouse.integration.v3.utils.StringUtils;
+import biz.digitalhouse.integration.v3.web.ws.http.internalAPIEndpoint.dto.*;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+import retrofit2.Response;
+
+import java.util.List;
+
+/**
+ * @author Vitalii Babenko on 04.03.2016.
+ */
+@RestController
+public class InternalAPIEndpoint {
+
+	private final Log log = LogFactory.getLog(getClass());
+	private ExternalClient externalClient;
+	private PlayerManager playerManager;
+	private BalanceManager balanceManager;
+	private PlayTransactionManager playTransactionManager;
+	private ExternalSiteServiceClient externalSiteServiceClient;
+
+	@Autowired
+	public InternalAPIEndpoint(ExternalClient externalClient, PlayerManager playerManager,
+			BalanceManager balanceManager, PlayTransactionManager playTransactionManager,
+			ExternalSiteServiceClient externalSiteServiceClient) {
+
+		this.externalClient = externalClient;
+		this.playerManager = playerManager;
+		this.balanceManager = balanceManager;
+		this.playTransactionManager = playTransactionManager;
+		this.externalSiteServiceClient = externalSiteServiceClient;
+	}
+
+	@RequestMapping(value = "authenticate")
+	public AuthenticateResponse authenticate(@RequestBody AuthenticateRequest req) {
+		AuthenticateResponse res = new AuthenticateResponse();
+		try {
+			AuthenticateResult dto = externalClient.authenticate(req.getBrandID(), req.getToken());
+			log.debug("playerManager.checkAndRegister: BrandID: " + req.getBrandID() + ", PlayerId: "
+					+ dto.getPlayerId() + ", Currency: " + dto.getCurrency() + ", Nickname " + dto.getNickname());
+			Player player = playerManager.checkAndRegister(req.getBrandID(), dto.getPlayerId(), dto.getCurrency(),
+					dto.getNickname());
+			res.setPlayerID(player.getPlayerID());
+			res.setCurrency(dto.getCurrency());
+			res.setStatus(InternalServiceResponseStatus.OK);
+		} catch (ExternalServiceException e) {
+			res.setStatus(InternalServiceResponseStatus.ERROR);
+		} catch (Exception e) {
+			log.error(e.getMessage(), e);
+			res.setStatus(InternalServiceResponseStatus.ERROR);
+		}
+		return res;
+	}
+
+	@SuppressWarnings("unused")
+	@RequestMapping(value = "balance")
+	public BalanceResponse balance(@RequestBody BalanceRequest req) {
+		BalanceResponse res = new BalanceResponse();
+		try {
+			Balance bl = balanceManager.getBalance(req.getBrandID(), req.getPlayerID(), req.getVendorID());
+			res.setCash(bl.getCash());
+			res.setBonus(bl.getBonus());
+			res.setStatus(InternalServiceResponseStatus.OK);
+		} catch (ExternalServiceException e) {
+			res.setStatus(InternalServiceResponseStatus.ERROR);
+		} catch (Exception e) {
+			log.error(e.getMessage(), e);
+			res.setStatus(InternalServiceResponseStatus.ERROR);
+		}
+		return res;
+	}
+
+	@PostMapping(value = "scratchCardWin")
+	public ScratchCardWinResponse scratchCardWin(@RequestBody ScratchCardWinRequest req) {
+		ScratchCardWinResponse res = new ScratchCardWinResponse();
+		try {
+			Player player = playerManager.getOnlinePlayer(req.getPlayerID());
+			ScratchCardWinResult sc = playTransactionManager.scratchCardWin(req.getBrandID(), req.getVendorID(), player,
+					req.getPromotionId(), req.getPrizeTypeId(), req.getOfferValue(), req.getCurrency());
+
+			res.setStatus(sc.getStatus());
+			res.setErrorCode(sc.getErrorCode());
+			res.setErrorDescription(sc.getErrorDescription());
+			res.setErrorId(sc.getErrorId());
+			res.setErrorDesc(sc.getErrorDesc());
+		} catch (ExternalServiceException e) {
+			res.setStatus("ERROR");
+		} catch (Exception e) {
+			log.error(e.getMessage(), e);
+			res.setStatus("ERROR");
+		}
+		return res;
+	}
+
+	@SuppressWarnings("unused")
+	@RequestMapping(value = "bulkBalance")
+	public BulkBalanceResponse bulkBalance(@RequestBody BulkBalanceRequest req) {
+		BulkBalanceResponse res = new BulkBalanceResponse();
+		try {
+			for (Long playerId : req.getPlayerIDList()) {
+				Balance bl = balanceManager.getBalance(req.getBrandID(), playerId, req.getVendorID());
+				if (bl != null) {
+					PlayerBalance pl = new PlayerBalance();
+					pl.setPlayerID(playerId);
+					pl.setCash(bl.getCash());
+					pl.setBonus(bl.getBonus());
+					res.getBalanceList().add(pl);
+				}
+			}
+			res.setStatus(InternalServiceResponseStatus.OK);
+		} catch (ExternalServiceException e) {
+			res.setStatus(InternalServiceResponseStatus.ERROR);
+		} catch (Exception e) {
+			log.error(e.getMessage(), e);
+			res.setStatus(InternalServiceResponseStatus.ERROR);
+		}
+		return res;
+	}
+
+	@SuppressWarnings("unused")
+	@RequestMapping(value = "createPlaySession")
+	public CreatePlaySessionResponse createPlaySession(@RequestBody CreatePlaySessionRequest req) throws Exception {
+		CreatePlaySessionResponse res = new CreatePlaySessionResponse();
+
+		Player player = playerManager.getOnlinePlayer(req.getPlayerID());
+		long roundID = playTransactionManager.createPlaySession(req.getVendorID(), req.getBrandID(), player,
+				req.getVipLevel(), req.getGameSymbol(), req.getIncomingRoundID(), req.getOriginalRoundID(),
+				req.getBonusCode());
+		res.setRoundID(roundID);
+		return res;
+	}
+
+	@SuppressWarnings("unused")
+	@RequestMapping(value = "bet")
+	public BetResponse bet(@RequestBody BetRequest req) {
+		BetResponse res = new BetResponse();
+		try {
+			Player player = playerManager.getOnlinePlayer(req.getPlayerID());
+
+			TransactionResult result = playTransactionManager.bet(req.getBrandID(), req.getVendorID(), player,
+					req.getGameSymbol(), req.getBet(), req.getTransactionID(), req.getRoundID(),
+					req.getOriginalRoundID(), req.isGamble() != null && req.isGamble(), req.getBonusCode());
+
+			res.setStatus(result.getStatus());
+			res.setExternalTransactionID(result.getTransactionId());
+
+			if (result.getStatus() == InternalServiceResponseStatus.OK
+					|| result.getStatus() == InternalServiceResponseStatus.INSUFFICIENT_FUNDS_ERROR
+					|| result.getStatus() == InternalServiceResponseStatus.GAME_DISABLED_FOR_BONUS) {
+
+				Balance bal = balanceManager.getBalance(req.getBrandID(), player.getPlayerID(), req.getVendorID());
+				res.setCash(bal.getCash());
+				res.setBonus(bal.getBonus());
+				res.setUsedBonus(result.getUsedBonus());
+			}
+
+		} catch (ExternalServiceException e) {
+			if (log.isWarnEnabled()) {
+				log.warn(e.getMessage(), e);
+			}
+			res.setStatus(InternalServiceResponseStatus.ERROR);
+		} catch (Exception e) {
+			log.error(e.getMessage(), e);
+			res.setStatus(InternalServiceResponseStatus.ERROR);
+		}
+
+		return res;
+	}
+
+	@SuppressWarnings("unused")
+	@RequestMapping(value = "refund")
+	public RefundResponse refund(@RequestBody RefundRequest req) {
+		RefundResponse res = new RefundResponse();
+		try {
+			Player player = playerManager.getOnlinePlayer(req.getPlayerID());
+			String result = playTransactionManager.refund(req.getBrandID(), req.getVendorID(), player,
+					req.getTransactionID());
+			res.setExternalTransactionID(StringUtils.getNullIsBlank(result));
+			res.setStatus(InternalServiceResponseStatus.OK);
+		} catch (ExternalServiceException e) {
+			res.setStatus(InternalServiceResponseStatus.ERROR);
+		} catch (Exception e) {
+			log.error(e.getMessage(), e);
+			res.setStatus(InternalServiceResponseStatus.ERROR);
+		}
+		return res;
+	}
+
+	@SuppressWarnings("unused")
+	@RequestMapping(value = "win")
+	public WinResponse collectWin(@RequestBody WinRequest req) {
+		WinResponse res = new WinResponse();
+		try {
+			Player player = playerManager.getOnlinePlayer(req.getPlayerID());
+
+			TransactionResult result = playTransactionManager.win(req.getBrandID(), req.getVendorID(), player,
+					req.getGameSymbol(), req.getWin(), req.getTransactionID(), req.getRoundID(),
+					req.getOriginalRoundID(), req.isGamble() != null && req.isGamble(), req.getBonusCode(),
+					req.isEndRound() != null && req.isEndRound());
+
+			res.setStatus(result.getStatus());
+			res.setExternalTransactionID(result.getTransactionId());
+
+			Balance balance = balanceManager.getBalance(req.getBrandID(), player.getPlayerID(), req.getVendorID());
+			res.setCash(balance.getCash());
+			res.setBonus(balance.getBonus());
+
+		} catch (ExternalServiceException e) {
+			res.setStatus(InternalServiceResponseStatus.ERROR);
+		} catch (Exception e) {
+			log.error(e.getMessage(), e);
+			res.setStatus(InternalServiceResponseStatus.ERROR);
+		}
+		return res;
+	}
+
+	@SuppressWarnings("unused")
+	@RequestMapping(value = "jackpotWin")
+	public JackpotWinResponse jackpotWin(@RequestBody JackpotWinRequest req) {
+
+		JackpotWinResponse res = new JackpotWinResponse();
+		try {
+			Player player = playerManager.getOnlinePlayer(req.getPlayerID());
+
+			TransactionResult result = playTransactionManager.jackpotWin(req.getBrandID(), req.getVendorID(), player,
+					req.getGameSymbol(), req.getWin(), req.getJackpotID(), req.getTierTypeID(), req.getTransactionID(),
+					req.getRoundID(), req.getOriginalRoundID(), req.isEndRound());
+
+			res.setStatus(result.getStatus());
+			res.setExternalTransactionID(result.getTransactionId());
+
+			Balance balance = balanceManager.getBalance(req.getBrandID(), player.getPlayerID(), req.getVendorID());
+			res.setCash(balance.getCash());
+			res.setBonus(balance.getBonus());
+
+		} catch (ExternalServiceException e) {
+			res.setStatus(InternalServiceResponseStatus.ERROR);
+		} catch (Exception e) {
+			log.error(e.getMessage(), e);
+			res.setStatus(InternalServiceResponseStatus.ERROR);
+		}
+		return res;
+	}
+
+	@SuppressWarnings("unused")
+	@RequestMapping(value = "endRound")
+	public EndRoundResponse endRound(@RequestBody EndRoundRequest req) {
+		if (log.isWarnEnabled()) {
+			log.warn("METHOD @DEPRECATED");
+		}
+		EndRoundResponse res = new EndRoundResponse();
+		try {
+			Player player = playerManager.getOnlinePlayer(req.getPlayerID());
+			playTransactionManager.endRound(req.getBrandID(), req.getVendorID(), player, req.getGameID(),
+					req.getRoundID());
+			res.setStatus(InternalServiceResponseStatus.OK);
+		} catch (ExternalServiceException e) {
+			res.setStatus(InternalServiceResponseStatus.ERROR);
+		} catch (Exception e) {
+			log.error(e.getMessage(), e);
+			res.setStatus(InternalServiceResponseStatus.ERROR);
+		}
+		return res;
+	}
+
+	@SuppressWarnings("unused")
+	@RequestMapping(value = "bonusWin")
+	public BonusWinResponse bonusWin(@RequestBody BonusWinRequest req) {
+		if (log.isWarnEnabled()) {
+			log.warn("METHOD @DEPRECATED");
+		}
+
+		BonusWinResponse res = new BonusWinResponse();
+		try {
+			Player player = playerManager.getOnlinePlayer(req.getPlayerID());
+
+			TransactionResult result = externalClient.bonusWin(req.getBrandID(), req.getVendorID(),
+					player.getExternalPlayerID(), req.getWin(), req.getBonusCode());
+
+			res.setStatus(result.getStatus());
+			res.setExternalTransactionID(result.getTransactionId());
+
+			balanceManager.putBalance(
+					new Balance(player.getPlayerID(), req.getVendorID(), result.getCash(), result.getBonus()));
+			res.setCash(result.getCash());
+			res.setBonus(result.getBonus());
+
+		} catch (ExternalServiceException e) {
+			res.setStatus(InternalServiceResponseStatus.ERROR);
+		} catch (Exception e) {
+			log.error(e.getMessage(), e);
+			res.setStatus(InternalServiceResponseStatus.ERROR);
+		}
+		return res;
+	}
+
+	@SuppressWarnings("unused")
+	@RequestMapping(value = "buyBingoCards")
+	public BuyBingoCardsResponse buyBingoCards(@RequestBody BuyBingoCardsRequest req) {
+		BuyBingoCardsResponse res = new BuyBingoCardsResponse();
+
+		try {
+			Player player = playerManager.getOnlinePlayer(req.getPlayerID());
+
+			BuyBingoCardsResult result = externalClient.buyBingoCards(req.getBrandID(), Vendors.TOP_GAME_BINGO,
+					player.getExternalPlayerID(), req.getAmount(), req.getCardCost(), req.getCardCostUSD(),
+					req.getRoomID(), req.getRoundID(), req.getCardsNumber(), req.getPackSize(), req.getTransactionID());
+
+			res.setStatus(result.getStatus());
+			res.setExternalTransactionID(result.getTransactionId());
+
+			balanceManager.putBalance(
+					new Balance(player.getPlayerID(), Vendors.TOP_GAME_BINGO, result.getCash(), result.getBonus()));
+			res.setCash(result.getCash());
+			res.setBonus(result.getBonus());
+			res.setBonusPart(result.getBonusPart());
+
+		} catch (ExternalServiceException e) {
+			res.setStatus(InternalServiceResponseStatus.ERROR);
+		} catch (Exception e) {
+			log.error(e.getMessage(), e);
+			res.setStatus(InternalServiceResponseStatus.ERROR);
+		}
+
+		return res;
+	}
+
+	@SuppressWarnings("unused")
+	@RequestMapping(value = "bingoRefund")
+	public BingoRefundResponse bingoRefund(@RequestBody BingoRefundRequest req) {
+
+		BingoRefundResponse res = new BingoRefundResponse();
+		try {
+			Player player = playerManager.getOnlinePlayer(req.getPlayerID());
+			String result = externalClient.bingoRefund(req.getBrandID(), req.getVendorID(),
+					player.getExternalPlayerID(), req.getTransactionID());
+			res.setExternalTransactionID(StringUtils.getNullIsBlank(result));
+			res.setStatus(InternalServiceResponseStatus.OK);
+		} catch (ExternalServiceException e) {
+			res.setStatus(InternalServiceResponseStatus.ERROR);
+		} catch (Exception e) {
+			log.error(e.getMessage(), e);
+			res.setStatus(InternalServiceResponseStatus.ERROR);
+		}
+		return res;
+	}
+
+	@SuppressWarnings("unused")
+	@RequestMapping(value = "buyReservedCards")
+	public BuyReservedCardsResponse buyReservedCards(@RequestBody BuyReservedCardsRequest req) {
+
+		BuyReservedCardsResponse res = new BuyReservedCardsResponse();
+		try {
+			Player player = playerManager.getOnlinePlayer(req.getPlayerID());
+
+			BuyReservedCardsResult result = externalClient.buyReservedCards(req.getBrandID(),
+					player.getExternalPlayerID(), req.getAmount(), req.getRoomID(), req.getRoundID(), req.getCardCost(),
+					req.getCardCostUSD(), req.getCardsNumber(), req.getPackSize(), req.getTransactionID());
+
+			res.setStatus(result.getStatus());
+			if (result.getStatus() == 1) {
+				return res;
+			}
+
+			res.setBoughtCardsNumber(result.getBoughtCardsNumber());
+			res.setTransactionID(result.getTransactionID());
+
+			balanceManager.putBalance(
+					new Balance(player.getPlayerID(), Vendors.TOP_GAME_BINGO, result.getCash(), result.getBonus()));
+
+			res.setCash(result.getCash());
+			res.setBonus(result.getBonus());
+			res.setBonusPart(result.getBonusPart());
+
+		} catch (Exception e) {
+			log.error(e.getMessage(), e);
+			res.setStatus(InternalServiceResponseStatus.ERROR);
+		}
+		return res;
+	}
+
+	@SuppressWarnings("unused")
+	@RequestMapping(value = "getRoomIDsByPlayer")
+	public BingoRoomIDsByPlayerResponse getRoomIDsByPlayer(@RequestBody BingoRoomIDsByPlayerRequest req) {
+
+		try {
+			if (!req.getUrl().trim().isEmpty()) {
+				Player player = playerManager.getOnlinePlayer(req.getPlayerID());
+				Response<List<Long>> response = externalSiteServiceClient
+						.getRoomIDsByPlayer(req.getUrl(), player.getExternalPlayerID()).execute();
+				if (!response.isSuccessful()) {
+					log.error(response.errorBody());
+					return null;
+				}
+				List<Long> res = response.body();
+				if (res != null && !res.isEmpty()) {
+					return new BingoRoomIDsByPlayerResponse(res);
+				}
+			}
+		} catch (Exception e) {
+			log.error(e.getMessage(), e);
+		}
+		return null;
+	}
+
+	@SuppressWarnings("unused")
+	@RequestMapping(value = "bingoResult")
+	public BingoResultResponse bingoResult(@RequestBody BingoResultRequest req) {
+		BingoResultResponse res = new BingoResultResponse();
+		try {
+			Player player = playerManager.getOnlinePlayer(req.getPlayerID());
+			BingoWinResult result = externalClient.bingoWin(req.getBrandID(), player.getExternalPlayerID(),
+					req.getTransactionID(), req.getAmount(), req.getRoundID(), req.getRoomID());
+			res.setTransactionID(result.getTransactionID());
+			res.setCash(result.getCash());
+			res.setBonus(result.getBonus());
+			res.setBonusPart(result.getBonusPart());
+			res.setStatus(InternalServiceResponseStatus.OK);
+		} catch (Exception e) {
+			log.error(e.getMessage(), e);
+			res.setDescription(e.getMessage());
+			res.setStatus(InternalServiceResponseStatus.ERROR);
+		}
+		return res;
+	}
+
+	@SuppressWarnings("unused")
+	@RequestMapping(value = "bingoEndRound")
+	public BaseResponse bingoEndRound(@RequestBody BingoEndRoundRequest req) {
+		BaseResponse res = new BaseResponse();
+		try {
+			Player player = playerManager.getOnlinePlayer(req.getPlayerID());
+			externalClient.bingoEndRound(req.getBrandID(), player.getExternalPlayerID(), req.getRoomID(),
+					req.getRoundID());
+			res.setStatus(InternalServiceResponseStatus.OK);
+		} catch (Exception e) {
+			log.error(e.getMessage(), e);
+			res.setStatus(InternalServiceResponseStatus.ERROR);
+		}
+		return res;
+	}
+
+	/**
+	 * this method use Chat Game server
+	 * 
+	 * @param req - ProcessBingoBucksRequest
+	 * @return ProcessBingoBucksResponse
+	 * @throws Exception - any exception
+	 */
+	// @SuppressWarnings("unused")
+	@RequestMapping(value = "processBingoBucks")
+	public ProcessBingoBucksResponse processBingoBucks(@RequestBody ProcessBingoBucksRequest req) throws Exception {
+
+		Player player = playerManager.getOnlinePlayer(req.getPlayerID());
+		ProcessBingoBucks r = externalClient.processBingoBucks(player.getBrandID(), player.getExternalPlayerID(),
+				req.getAmount(), req.getRoomID(), req.getChatRoundID(), req.getIsUnlimited());
+
+		ProcessBingoBucksResponse res = new ProcessBingoBucksResponse();
+		res.setError(r.getError());
+		res.setDescription(r.getDescription());
+		res.setAmount(r.getAmount());
+		res.setTransactionID(r.getTransactionID());
+		return res;
+	}
+}
