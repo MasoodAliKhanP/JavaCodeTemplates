@@ -1,0 +1,33 @@
+{
+	"data": {
+		"type": "RealTimeTransaction",
+		"id": "1563949abcd783488539879934999788900990879300499053",
+		"attributes": {
+			"transaction_data": {
+				"counterparty_name": "harish",
+				"customer_name": "",
+				"tx_id": "1565336795788414516",
+				"tx_datetime": "2019-07-21 00:00:00",
+				"tx_amount": 100,
+				"tx_base_amount": 100,
+				"tx_currency": "EUR",
+				"tx_base_currency": "EUR",
+				"customer_id": "1234",
+				"customer_country_inc": "IND",
+				"customer_country_citizenship": "IND",
+				"customer_country_residence": "IND",
+				"customer_is_pep": "YES",
+				"customer_max_tx_value_declared": 10000,
+				"counterparty_id": "123123",
+				"tx_counterparty_account": "89470239843207320",
+				"counterparty_country_inc": "IND",
+				"counterparty_country_citizenship": "IND",
+				"counterparty_country_residence": "IND",
+				"counterparty_is_pep": "NO",
+				"connectpay_rule": "0",
+				"debtor_risk_category": "LOW"
+			},
+			"source_format_name": "ConnectPay"
+		}
+	}
+}
